@@ -88,6 +88,7 @@ concurrency:
 jobs:
   # Job 1: Query Linear and prepare the task matrix
   prepare:
+    if: ${{ secrets.LINEAR_API_KEY != '' }}
     permissions:
       contents: read
     uses: ./.github/workflows/_claude-task-prepare.yml
@@ -153,6 +154,7 @@ jobs:
           SERVER_URL: ${{ github.server_url }}
           REPOSITORY: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
+          HAS_LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY != '' }}
           HAS_TASKS: ${{ needs.prepare.outputs.has_tasks }}
           QUERY_RESULT: ${{ needs.prepare.outputs.result }}
           TASK_RESULT: ${{ needs.process-task.result }}
@@ -164,7 +166,11 @@ jobs:
           echo "**Workflow Run:** [#${RUN_NUMBER}](${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [ "$HAS_TASKS" == "true" ]; then
+          if [ "$HAS_LINEAR_API_KEY" != "true" ]; then
+            echo "**Result:** Skipped task processing because \`LINEAR_API_KEY\` is not configured" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "To enable autonomous processing, add the \`LINEAR_API_KEY\` repository secret." >> $GITHUB_STEP_SUMMARY
+          elif [ "$HAS_TASKS" == "true" ]; then
             TASK_COUNT=$(echo "$QUERY_RESULT" | jq -r '.count')
             echo "**Tasks Found:** $TASK_COUNT" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY

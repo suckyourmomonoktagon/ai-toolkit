@@ -1262,7 +1262,7 @@ These workflows are prefixed with two `__` and are only used within this reposit
 
 - `ci-pr-checks.yml` - Main PR validation pipeline
 - `ci-check-pr-title.yml` - PR title format validation
-- `claude-auto-tasks.yml` - Autonomous task processing from Linear (scheduled)
+- `claude-auto-tasks.yml` - Autonomous task processing from Linear (scheduled; skips prepare job when `LINEAR_API_KEY` is unset)
 - `claude-code.yml` - Enables @claude mentions
 - `claude-code-review.yml` - Automated code reviews via `@uniswap/review-cli`
 - `claude-welcome.yml` - New PR welcomes
