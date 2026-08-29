@@ -91,7 +91,7 @@ This workflow enables Claude to respond to @claude mentions in issues, PRs, comm
 
 | Secret                    | Required                                      | Description                                                                                                                               |
 | ------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `ANTHROPIC_API_KEY`       | Yes (unless `CLAUDE_CODE_OAUTH_TOKEN` is set) | Anthropic API key for Claude access                                                                                                       |
+| `ANTHROPIC_API_KEY`       | No (unless validation is required)            | Anthropic API key for Claude access. Without either Claude credential, validation is skipped successfully.                                |
 | `CLAUDE_CODE_OAUTH_TOKEN` | No (alternative to `ANTHROPIC_API_KEY`)       | Claude Code OAuth token for authentication. When provided, takes precedence over `ANTHROPIC_API_KEY`. Generate with `claude setup-token`. |
 
 **Authentication Methods:**
@@ -101,7 +101,7 @@ You can authenticate with Claude using either method:
 1. **API Key (Traditional):** Set `ANTHROPIC_API_KEY` with your Anthropic API key
 2. **OAuth Token (Pro/Max Users):** Set `CLAUDE_CODE_OAUTH_TOKEN` with a token generated via `claude setup-token`
 
-If both are provided, OAuth token takes precedence. At least one authentication method must be configured.
+If both are provided, OAuth token takes precedence. If neither is configured, the workflow reports a successful skip rather than failing the PR.
 
 The bundled `claude-docs-check.yml` caller forwards both authentication secrets to the reusable workflow.
 
