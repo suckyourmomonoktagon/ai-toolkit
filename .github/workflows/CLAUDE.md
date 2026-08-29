@@ -877,6 +877,8 @@ You can authenticate with Claude using either method:
 
 If both are provided, OAuth token takes precedence. At least one authentication method must be configured.
 
+When neither secret is available, the workflow reports a notice and skips metadata generation instead of failing the PR workflow.
+
 > **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
 >
 > **Note:** If you need assistance installing the Claude GitHub App, please open an issue at [GitHub Issues](https://github.com/Uniswap/ai-toolkit/issues).
