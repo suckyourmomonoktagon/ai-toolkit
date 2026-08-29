@@ -183,9 +183,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read # checkout the local composite action
-      packages: read # pull @uniswap/review-cli from GitHub Packages
+      packages: read # pull @uniswap/review-cli when the token can access its package
       issues: write # 👀 reaction on issue_comment
       pull-requests: write # 👀 reaction on pull_request_review_comment
+    env:
+      # GITHUB_TOKEN is scoped to this repository and cannot read the private
+      # package in Uniswap/internal-tools from forks. A separately configured
+      # token keeps this workflow usable in downstream repositories as well.
+      HAS_REVIEW_CLI_TOKEN: ${{ secrets.REVIEW_CLI_TOKEN != '' }}
     outputs:
       run: ${{ steps.gate.outputs.run }}
       pr_number: ${{ steps.gate.outputs.pr_number }}
@@ -234,6 +239,7 @@ jobs:
       - name: Install review-cli
         id: install-review-cli
         uses: ./.github/actions/install_review_cli
+        if: env.HAS_REVIEW_CLI_TOKEN == 'true'
         with:
           # Pinned, never `@latest`, so an upstream release cannot change
           # review behavior mid-PR. Override without a commit by setting
@@ -241,7 +247,11 @@ jobs:
           # variables → Actions → Variables). 1.10.x is required for the
           # `model.synthesis` key in .claude/review.yml.
           version: ${{ vars.REVIEW_CLI_VERSION || '1.10.1' }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.REVIEW_CLI_TOKEN }}
+
+      - name: Note unavailable review CLI credential
+        if: steps.install-review-cli.outputs.bin-path == ''
+        run: echo "::notice::Skipping AI review because REVIEW_CLI_TOKEN is not configured. Set it to a token with read access to @uniswap/review-cli in GitHub Packages."
 
       # `loadConfig` treats a missing or invalid .claude/review.yml as
       # "use defaults" and says nothing. Those defaults skip dependabot,
@@ -249,6 +259,7 @@ jobs:
       # would silently stop reviewing dependency PRs (breaking
       # auto-merge) with a green run and no signal. Fail loudly instead.
       - name: Verify review config is present
+        if: steps.install-review-cli.outputs.bin-path != ''
         run: |
           set -euo pipefail
           if [ ! -s .claude/review.yml ]; then
@@ -272,6 +283,7 @@ jobs:
 
       - name: Decide whether to run
         id: gate
+        if: steps.install-review-cli.outputs.bin-path != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REVIEW_CLI_BIN: ${{ steps.install-review-cli.outputs.bin-path }}
@@ -407,6 +419,7 @@ jobs:
       # job-level env is, so this exposes "is Datadog configured?" to the
       # optional telemetry step below.
       HAS_DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY != '' }}
+      HAS_REVIEW_CLI_TOKEN: ${{ secrets.REVIEW_CLI_TOKEN != '' }}
     steps:
       - uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3 # v0.8.4
 
@@ -555,9 +568,10 @@ jobs:
       - name: Install review-cli
         id: install-review-cli
         uses: ./.review-tooling/.github/actions/install_review_cli
+        if: env.HAS_REVIEW_CLI_TOKEN == 'true'
         with:
           version: ${{ vars.REVIEW_CLI_VERSION || '1.10.1' }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.REVIEW_CLI_TOKEN }}
 
       # Fail loudly rather than silently degrading: without a token the
       # agent-query factory falls back to a mock and "reviews" nothing.

@@ -570,6 +570,7 @@ So the `triage` job does a sparse checkout of `.github/actions` and `.claude`, a
 | `.claude/agents/*-reviewer.md`       | Repo-specific reviewers, **added to** review-cli's bundled set (not replacing it)                                                                   |
 | `.github/actions/install_review_cli` | Installs the CLI from GitHub Packages into an isolated `$RUNNER_TEMP` dir. In the `review` job it is resolved from the trusted ref, not the PR head |
 | `vars.REVIEW_CLI_VERSION`            | CLI version override; falls back to the pin in the workflow. Never `@latest`                                                                        |
+| `secrets.REVIEW_CLI_TOKEN`           | **Required.** Token with read access to `@uniswap/review-cli` in GitHub Packages; without it, the AI review skips cleanly                         |
 | `secrets.CLAUDE_CODE_OAUTH_TOKEN`    | **Required.** `ANTHROPIC_API_KEY` is deliberately never forwarded to the review job                                                                 |
 | `secrets.DATADOG_API_KEY`            | Optional. Enables CI Visibility stamping; the step is skipped when unset                                                                            |
 
@@ -586,7 +587,7 @@ So the `triage` job does a sparse checkout of `.github/actions` and `.claude`, a
 
 Do **not** "fix" this by widening `Post` to `always()`. Cancellation is also how the `concurrency` group stops a superseded run, and an `always()` Post would let that dying run overwrite the sticky its successor is mid-way through writing.
 
-**Why `install_review_cli` needs an isolated directory:** the repo's `bunfig.toml` pins the whole `@uniswap` scope to `registry.npmjs.org`, but `@uniswap/review-cli` is private on GitHub Packages, and bun only supports per-_scope_ registry overrides. The same file also enforces a 3-day `minimumReleaseAge` as a supply-chain control. That age gate applies to exact version requests too, so a review-cli version published less than 3 days ago is uninstallable until it ages in (bun errors rather than downgrading; an exact pin bypasses the stability-check fallback). Installing from a scratch dir with its own `bunfig.toml` sidesteps both without touching the repo's copy.
+**Why `install_review_cli` needs an isolated directory:** the repo's `bunfig.toml` pins the whole `@uniswap` scope to `registry.npmjs.org`, but `@uniswap/review-cli` is private on GitHub Packages, and bun only supports per-_scope_ registry overrides. The same file also enforces a 3-day `minimumReleaseAge` as a supply-chain control. That age gate applies to exact version requests too, so a review-cli version published less than 3 days ago is uninstallable until it ages in (bun errors rather than downgrading; an exact pin bypasses the stability-check fallback). Installing from a scratch dir with its own `bunfig.toml` sidesteps both without touching the repo's copy. `GITHUB_TOKEN` is repository-scoped and cannot access that package from a fork, so `REVIEW_CLI_TOKEN` must be configured with package read access; without it, the workflow emits a notice and skips the AI review.
 
 **Behavior preserved from the previous implementation:**
 
