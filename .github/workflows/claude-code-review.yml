@@ -250,7 +250,7 @@ jobs:
           github-token: ${{ secrets.REVIEW_CLI_TOKEN }}
 
       - name: Note unavailable review CLI credential
-        if: steps.install-review-cli.outputs.bin-path == ''
+        if: env.HAS_REVIEW_CLI_TOKEN != 'true'
         run: echo "::notice::Skipping AI review because REVIEW_CLI_TOKEN is not configured. Set it to a token with read access to @uniswap/review-cli in GitHub Packages."
 
       # `loadConfig` treats a missing or invalid .claude/review.yml as
@@ -259,7 +259,7 @@ jobs:
       # would silently stop reviewing dependency PRs (breaking
       # auto-merge) with a green run and no signal. Fail loudly instead.
       - name: Verify review config is present
-        if: steps.install-review-cli.outputs.bin-path != ''
+        if: env.HAS_REVIEW_CLI_TOKEN == 'true'
         run: |
           set -euo pipefail
           if [ ! -s .claude/review.yml ]; then
@@ -283,7 +283,7 @@ jobs:
 
       - name: Decide whether to run
         id: gate
-        if: steps.install-review-cli.outputs.bin-path != ''
+        if: env.HAS_REVIEW_CLI_TOKEN == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REVIEW_CLI_BIN: ${{ steps.install-review-cli.outputs.bin-path }}
