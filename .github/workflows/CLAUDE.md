@@ -588,6 +588,10 @@ Do **not** "fix" this by widening `Post` to `always()`. Cancellation is also how
 
 **Why `install_review_cli` needs an isolated directory:** the repo's `bunfig.toml` pins the whole `@uniswap` scope to `registry.npmjs.org`, but `@uniswap/review-cli` is private on GitHub Packages, and bun only supports per-_scope_ registry overrides. The same file also enforces a 3-day `minimumReleaseAge` as a supply-chain control. That age gate applies to exact version requests too, so a review-cli version published less than 3 days ago is uninstallable until it ages in (bun errors rather than downgrading; an exact pin bypasses the stability-check fallback). Installing from a scratch dir with its own `bunfig.toml` sidesteps both without touching the repo's copy.
 
+**Package authentication:** `GITHUB_TOKEN` cannot read the private
+`@uniswap/review-cli` package. Configure `REVIEW_CLI_TOKEN` with `packages:read`;
+the `review-cli-auth` job skips the review cleanly when it is unavailable.
+
 **Behavior preserved from the previous implementation:**
 
 - Dependency PRs are **reviewed, not skipped** (review-cli's default skip policy would skip `dependabot/`, `renovate/`, and every `*[bot]` author). `auto-merge-dependabot` gates on the review result, so skipping them would leave security bumps unmerged. Hence `skip.authors: []` and the omitted dependency branch prefixes in `.claude/review.yml`.
