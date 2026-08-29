@@ -571,6 +571,7 @@ So the `triage` job does a sparse checkout of `.github/actions` and `.claude`, a
 | `.github/actions/install_review_cli` | Installs the CLI from GitHub Packages into an isolated `$RUNNER_TEMP` dir. In the `review` job it is resolved from the trusted ref, not the PR head |
 | `vars.REVIEW_CLI_VERSION`            | CLI version override; falls back to the pin in the workflow. Never `@latest`                                                                        |
 | `secrets.CLAUDE_CODE_OAUTH_TOKEN`    | **Required.** `ANTHROPIC_API_KEY` is deliberately never forwarded to the review job                                                                 |
+| `secrets.REVIEW_CLI_TOKEN`           | Required for review-cli installation. It must read private `@uniswap/review-cli` from GitHub Packages; triage skips with a notice when it is unset |
 | `secrets.DATADOG_API_KEY`            | Optional. Enables CI Visibility stamping; the step is skipped when unset                                                                            |
 
 **Repo-specific reviewers.** review-cli ships 11 bundled agents: security, correctness, patterns, dependency-upgrade, and general reviewers; contract-security and defi-risk reviewers (neither applicable here, see `triage.guidance`); stack-security-analyst and stack-synthesis for stacked PRs; plus triage and synthesis. ai-toolkit adds two:
