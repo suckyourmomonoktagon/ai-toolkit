@@ -10,8 +10,9 @@ Workflows that run automated checks on pull requests and commits.
 
 | Workflow                                     | Trigger      | Purpose                                                                                      | Status                                                                                          |
 | -------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| [`ci-pr-checks.yml`](./ci-pr-checks.yml)     | Pull Request | Validates installation, builds affected packages, runs linting, formatting checks, and tests | ![PR Checks](https://github.com/owner/repo/actions/workflows/ci-pr-checks.yml/badge.svg)        |
-| [`claude-welcome.yml`](./claude-welcome.yml) | PR Opened    | Posts welcome message from Claude to newly opened PRs                                        | ![Claude Welcome](https://github.com/owner/repo/actions/workflows/claude-welcome.yml/badge.svg) |
+| [`ci-pr-checks.yml`](./ci-pr-checks.yml)            | Pull Request | Validates installation, builds affected packages, runs linting, formatting checks, and tests                   | ![PR Checks](https://github.com/owner/repo/actions/workflows/ci-pr-checks.yml/badge.svg) |
+| [`claude-docs-check.yml`](./claude-docs-check.yml)  | Pull Request | Checks required documentation and plugin version updates; skips AI validation when Claude credentials are absent | —                                                                       |
+| [`claude-welcome.yml`](./claude-welcome.yml)        | PR Opened    | Posts welcome message from Claude to newly opened PRs                                                          | ![Claude Welcome](https://github.com/owner/repo/actions/workflows/claude-welcome.yml/badge.svg) |
 
 **Key Features:**
 
@@ -23,10 +24,16 @@ Workflows that run automated checks on pull requests and commits.
   - Uses Nx's affected commands for efficiency
 
 - **claude-welcome.yml**:
+
   - Uses the reusable `_claude-welcome.yml` workflow
   - Customized welcome message for AI Toolkit development
   - Links to Claude package documentation
   - 3-month expiration period
+
+- **claude-docs-check.yml**:
+
+  - Validates documentation and plugin version updates on same-repository PRs
+  - Skips AI validation with a notice when neither Claude authentication secret is configured
 
 ---
 
@@ -204,7 +211,8 @@ The [Claude GitHub App](https://github.com/apps/claude) must be installed on you
 | Secret                             | Used By                                     | Purpose                                             |
 | ---------------------------------- | ------------------------------------------- | --------------------------------------------------- |
 | `WORKFLOW_PAT`                     | publish-packages.yml, update-production.yml | Push commits/tags, create PRs (internal CI/CD only) |
-| `ANTHROPIC_API_KEY`                | generate-changelog.yml                      | AI-powered changelog generation                     |
+| `ANTHROPIC_API_KEY`                | generate-changelog.yml, claude-docs-check.yml | AI-powered changelog generation and documentation checks |
+| `CLAUDE_CODE_OAUTH_TOKEN`          | claude-docs-check.yml                       | Alternative Claude authentication for documentation checks |
 | `SLACK_WEBHOOK_URL`                | notify-release.yml, publish-packages.yml    | Send Slack release and error notifications          |
 | `NOTION_API_KEY`                   | notify-release.yml                          | Publish release notes to Notion (optional)          |
 | `RELEASE_NOTES_NOTION_DATABASE_ID` | notify-release.yml                          | Notion database ID for release notes (optional)     |

@@ -88,6 +88,8 @@ jobs:
       # changes; pinning to 'main' avoids that.
       toolkit_ref: 'main'
     secrets:
+      # API key authentication is supported when an OAuth token is unavailable.
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       # Use OAuth token (Pro/Max) instead of API key
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       # PAT for branch creation
