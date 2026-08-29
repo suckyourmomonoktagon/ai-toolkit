@@ -91,7 +91,7 @@ This workflow enables Claude to respond to @claude mentions in issues, PRs, comm
 
 | Secret                    | Required                                      | Description                                                                                                                               |
 | ------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `ANTHROPIC_API_KEY`       | Yes (unless `CLAUDE_CODE_OAUTH_TOKEN` is set) | Anthropic API key for Claude access                                                                                                       |
+| `ANTHROPIC_API_KEY`       | No                                            | Anthropic API key for Claude access; generation is skipped if neither authentication secret is set                                      |
 | `CLAUDE_CODE_OAUTH_TOKEN` | No (alternative to `ANTHROPIC_API_KEY`)       | Claude Code OAuth token for authentication. When provided, takes precedence over `ANTHROPIC_API_KEY`. Generate with `claude setup-token`. |
 
 **Authentication Methods:**
@@ -101,7 +101,7 @@ You can authenticate with Claude using either method:
 1. **API Key (Traditional):** Set `ANTHROPIC_API_KEY` with your Anthropic API key
 2. **OAuth Token (Pro/Max Users):** Set `CLAUDE_CODE_OAUTH_TOKEN` with a token generated via `claude setup-token`
 
-If both are provided, OAuth token takes precedence. At least one authentication method must be configured.
+If both are provided, OAuth token takes precedence. If neither is configured, the workflow reports a successful skip instead of generating metadata.
 
 > **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
 
@@ -788,6 +788,8 @@ The workflow uploads artifacts for debugging (retained for 7 days):
 ### PR Metadata Generation (`_generate-pr-metadata.yml`)
 
 This workflow generates PR titles and descriptions using Claude AI with the following features:
+
+When neither Claude authentication secret is available, its preflight job completes successfully and skips metadata generation. This lets repositories adopt the workflow before configuring `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` without failing pull requests.
 
 **Content Preservation with Markers:**
 
