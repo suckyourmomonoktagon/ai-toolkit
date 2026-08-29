@@ -47,15 +47,39 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Do not invoke the reusable validator without Claude credentials: its
+  # authentication validation would otherwise fail instead of skipping cleanly.
+  preflight:
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      has_claude_auth: ${{ steps.check-secret.outputs.has_claude_auth }}
+    steps:
+      - id: check-secret
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ] ||
+            [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+            echo "has_claude_auth=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_claude_auth=false" >> "$GITHUB_OUTPUT"
+          fi
+
   docs-check:
+    needs: preflight
     # Skip bots and fork PRs (fork code is attacker-controlled)
     # workflow_dispatch fork check is handled inside _claude-docs-check.yml
     if: |
-      github.event_name == 'workflow_dispatch' ||
+      needs.preflight.outputs.has_claude_auth == 'true' &&
       (
-        github.event_name == 'pull_request' &&
-        !contains(github.event.pull_request.user.login, '[bot]') &&
-        github.event.pull_request.head.repo.full_name == github.repository
+        github.event_name == 'workflow_dispatch' ||
+        (
+          github.event_name == 'pull_request' &&
+          !contains(github.event.pull_request.user.login, '[bot]') &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        )
       )
     permissions:
       id-token: write
