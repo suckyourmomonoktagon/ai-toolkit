@@ -86,8 +86,25 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      has_linear_api_key: ${{ steps.check-secret.outputs.has_linear_api_key }}
+    steps:
+      - id: check-secret
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        run: |
+          if [ -n "$LINEAR_API_KEY" ]; then
+            echo "has_linear_api_key=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_linear_api_key=false" >> "$GITHUB_OUTPUT"
+          fi
+
   # Job 1: Query Linear and prepare the task matrix
   prepare:
+    needs: preflight
+    if: needs.preflight.outputs.has_linear_api_key == 'true'
     permissions:
       contents: read
     uses: ./.github/workflows/_claude-task-prepare.yml
@@ -135,7 +152,7 @@ jobs:
 
   # Job 3: Summary (always runs)
   summary:
-    needs: [prepare, process-task]
+    needs: [preflight, prepare, process-task]
     if: always()
     runs-on: ubuntu-latest
     permissions: {}
@@ -154,6 +171,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
           HAS_TASKS: ${{ needs.prepare.outputs.has_tasks }}
+          PREPARE_RESULT: ${{ needs.prepare.result }}
           QUERY_RESULT: ${{ needs.prepare.outputs.result }}
           TASK_RESULT: ${{ needs.process-task.result }}
           INPUT_LINEAR_TEAM: ${{ inputs.linear_team }}
@@ -164,7 +182,9 @@ jobs:
           echo "**Workflow Run:** [#${RUN_NUMBER}](${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [ "$HAS_TASKS" == "true" ]; then
+          if [ "$PREPARE_RESULT" == "skipped" ]; then
+            echo '**Result:** Skipped because `LINEAR_API_KEY` is not configured' >> $GITHUB_STEP_SUMMARY
+          elif [ "$HAS_TASKS" == "true" ]; then
             TASK_COUNT=$(echo "$QUERY_RESULT" | jq -r '.count')
             echo "**Tasks Found:** $TASK_COUNT" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
