@@ -25,7 +25,7 @@ Contains GitHub Actions workflow definitions that automate CI/CD, code quality, 
 
 ### PR Title Validation (1 workflow)
 
-- `ci-check-pr-title.yml` - Validates PR titles follow conventional commit format
+- `ci-check-pr-title.yml` - Validates PR titles follow conventional commit format (semantic validation runs on `pull_request_target`; `workflow_run` trigger is follow-up only)
 
 ### Autonomous Task Processing (3 workflows)
 
@@ -1261,7 +1261,7 @@ These workflows are prefixed with two `__` and are only used within this reposit
 ### Consumer Workflows
 
 - `ci-pr-checks.yml` - Main PR validation pipeline
-- `ci-check-pr-title.yml` - PR title format validation
+- `ci-check-pr-title.yml` - PR title format validation (semantic validation runs only on `pull_request_target`)
 - `claude-auto-tasks.yml` - Autonomous task processing from Linear (scheduled)
 - `claude-code.yml` - Enables @claude mentions
 - `claude-code-review.yml` - Automated code reviews via `@uniswap/review-cli`
