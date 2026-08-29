@@ -290,21 +290,7 @@ jobs:
             echo "Successfully downloaded validate-claude-auth action"
           fi
 
-      - name: Check Claude authentication availability
-        id: auth-status
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-        run: |
-          if [ -n "$ANTHROPIC_API_KEY" ] || [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Skipping the AI documentation check because neither ANTHROPIC_API_KEY nor CLAUDE_CODE_OAUTH_TOKEN is configured."
-          fi
-
       - name: Validate Authentication
-        if: steps.auth-status.outputs.configured == 'true'
         uses: ./.github/actions/validate-claude-auth
         with:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -721,7 +707,6 @@ jobs:
       # Run Claude
       - name: Run Claude Docs Check
         id: claude
-        if: steps.auth-status.outputs.configured == 'true'
         uses: anthropics/claude-code-action@787c5a0ce96a9a6cfb050ea0c8f4c05f2447c251 # v1.0.133
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -737,7 +722,6 @@ jobs:
       # Extract and process results
       - name: Process Results
         id: process-results
-        if: steps.auth-status.outputs.configured == 'true'
         env:
           STRUCTURED_OUTPUT: ${{ steps.claude.outputs.structured_output }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -832,7 +816,6 @@ jobs:
         id: auto-fix-check
         if: |
           inputs.auto_fix == true &&
-          steps.auth-status.outputs.configured == 'true' &&
           success()
         env:
           STRUCTURED_OUTPUT_FILE: /tmp/docs-check-response.json
@@ -1224,16 +1207,10 @@ jobs:
         if: always()
         env:
           VERDICT: ${{ steps.process-results.outputs.verdict }}
-          AUTH_CONFIGURED: ${{ steps.auth-status.outputs.configured }}
           AUTO_FIX_ENABLED: ${{ inputs.auto_fix }}
           CHANGES_PUSHED: ${{ steps.commit-fixes.outputs.changes_pushed }}
           HAS_WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT && 'true' || 'false' }}
         run: |
-          if [ "$AUTH_CONFIGURED" != "true" ]; then
-            echo "ℹ️  Documentation check skipped because Claude authentication is not configured"
-            exit 0
-          fi
-
           if [ "$VERDICT" = "FAIL" ]; then
             if [ "$AUTO_FIX_ENABLED" = "true" ] && [ "$CHANGES_PUSHED" = "true" ] && [ "$HAS_WORKFLOW_PAT" = "true" ]; then
               echo "ℹ️  Documentation check found issues, but auto-fix pushed changes"
