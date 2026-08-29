@@ -101,7 +101,7 @@ You can authenticate with Claude using either method:
 1. **API Key (Traditional):** Set `ANTHROPIC_API_KEY` with your Anthropic API key
 2. **OAuth Token (Pro/Max Users):** Set `CLAUDE_CODE_OAUTH_TOKEN` with a token generated via `claude setup-token`
 
-If both are provided, OAuth token takes precedence. At least one authentication method must be configured.
+If both are provided, OAuth token takes precedence. When neither is configured, the metadata-generation job is skipped successfully and reports the reason in the workflow summary.
 
 The bundled `claude-docs-check.yml` caller forwards both authentication secrets to the reusable workflow.
 
