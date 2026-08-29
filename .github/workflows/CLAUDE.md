@@ -4,6 +4,13 @@
 
 Contains GitHub Actions workflow definitions that automate CI/CD, code quality, releases, and Claude AI integrations for the AI Toolkit monorepo. Includes both callable workflows (prefixed with `_`) and consumer workflows that use them.
 
+## Recent Changes
+
+- `ci-check-pr-title.yml` runs the semantic pull-request action only for
+  `pull_request_target` events. The title-generation workflow's
+  `workflow_run` event is reported as a successful skip because that action
+  cannot infer a pull request from that event type.
+
 ## Workflow Categories
 
 ### CI & Quality Assurance (2 workflows)
