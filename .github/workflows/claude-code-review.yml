@@ -192,7 +192,7 @@ jobs:
       # successful, visible no-op rather than failing before triage.
       HAS_REVIEW_CLI_TOKEN: ${{ secrets.REVIEW_CLI_TOKEN != '' }}
     outputs:
-      run: ${{ steps.gate.outputs.run || steps.credential-gate.outputs.run }}
+      run: ${{ steps.gate.outputs.run || steps.credential-gate.outputs.run || 'false' }}
       pr_number: ${{ steps.gate.outputs.pr_number }}
       comment_id: ${{ steps.gate.outputs.comment_id }}
       trigger_source: ${{ steps.gate.outputs.trigger_source }}
