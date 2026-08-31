@@ -186,8 +186,13 @@ jobs:
       packages: read # pull @uniswap/review-cli from GitHub Packages
       issues: write # 👀 reaction on issue_comment
       pull-requests: write # 👀 reaction on pull_request_review_comment
+    env:
+      # GITHUB_TOKEN is scoped to this repository and cannot read the private
+      # package owned by Uniswap. Keep a missing cross-repository token a
+      # successful, visible no-op rather than failing before triage.
+      HAS_REVIEW_CLI_TOKEN: ${{ secrets.REVIEW_CLI_TOKEN != '' }}
     outputs:
-      run: ${{ steps.gate.outputs.run }}
+      run: ${{ steps.gate.outputs.run || steps.credential-gate.outputs.run || 'false' }}
       pr_number: ${{ steps.gate.outputs.pr_number }}
       comment_id: ${{ steps.gate.outputs.comment_id }}
       trigger_source: ${{ steps.gate.outputs.trigger_source }}
@@ -233,6 +238,7 @@ jobs:
 
       - name: Install review-cli
         id: install-review-cli
+        if: env.HAS_REVIEW_CLI_TOKEN == 'true'
         uses: ./.github/actions/install_review_cli
         with:
           # Pinned, never `@latest`, so an upstream release cannot change
@@ -241,7 +247,7 @@ jobs:
           # variables → Actions → Variables). 1.10.x is required for the
           # `model.synthesis` key in .claude/review.yml.
           version: ${{ vars.REVIEW_CLI_VERSION || '1.10.1' }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.REVIEW_CLI_TOKEN }}
 
       # `loadConfig` treats a missing or invalid .claude/review.yml as
       # "use defaults" and says nothing. Those defaults skip dependabot,
@@ -249,6 +255,7 @@ jobs:
       # would silently stop reviewing dependency PRs (breaking
       # auto-merge) with a green run and no signal. Fail loudly instead.
       - name: Verify review config is present
+        if: env.HAS_REVIEW_CLI_TOKEN == 'true'
         run: |
           set -euo pipefail
           if [ ! -s .claude/review.yml ]; then
@@ -270,8 +277,16 @@ jobs:
               sys.exit('skip.authors is not [] — dependency PRs would be skipped at the gate, breaking auto-merge-dependabot')
           PY
 
+      - name: Note unavailable review-cli credentials
+        id: credential-gate
+        if: env.HAS_REVIEW_CLI_TOKEN != 'true'
+        run: |
+          echo "::notice::AI review skipped because REVIEW_CLI_TOKEN is not configured to read the private @uniswap/review-cli package."
+          echo "run=false" >> "$GITHUB_OUTPUT"
+
       - name: Decide whether to run
         id: gate
+        if: env.HAS_REVIEW_CLI_TOKEN == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REVIEW_CLI_BIN: ${{ steps.install-review-cli.outputs.bin-path }}
@@ -557,7 +572,7 @@ jobs:
         uses: ./.review-tooling/.github/actions/install_review_cli
         with:
           version: ${{ vars.REVIEW_CLI_VERSION || '1.10.1' }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.REVIEW_CLI_TOKEN }}
 
       # Fail loudly rather than silently degrading: without a token the
       # agent-query factory falls back to a mock and "reviews" nothing.

@@ -570,6 +570,7 @@ So the `triage` job does a sparse checkout of `.github/actions` and `.claude`, a
 | `.claude/agents/*-reviewer.md`       | Repo-specific reviewers, **added to** review-cli's bundled set (not replacing it)                                                                   |
 | `.github/actions/install_review_cli` | Installs the CLI from GitHub Packages into an isolated `$RUNNER_TEMP` dir. In the `review` job it is resolved from the trusted ref, not the PR head |
 | `vars.REVIEW_CLI_VERSION`            | CLI version override; falls back to the pin in the workflow. Never `@latest`                                                                        |
+| `secrets.REVIEW_CLI_TOKEN`           | Required to access Uniswap's private `@uniswap/review-cli` package. Without it, triage posts a notice and skips the review successfully.           |
 | `secrets.CLAUDE_CODE_OAUTH_TOKEN`    | **Required.** `ANTHROPIC_API_KEY` is deliberately never forwarded to the review job                                                                 |
 | `secrets.DATADOG_API_KEY`            | Optional. Enables CI Visibility stamping; the step is skipped when unset                                                                            |
 
@@ -1454,6 +1455,7 @@ Common secrets referenced:
 
 - `ANTHROPIC_API_KEY` - Claude AI API authentication (also requires the [Claude GitHub App](https://github.com/apps/claude) to be installed on the repository). Alternative: use `CLAUDE_CODE_OAUTH_TOKEN` instead.
 - `CLAUDE_CODE_OAUTH_TOKEN` - Claude Code OAuth token for authentication (alternative to `ANTHROPIC_API_KEY`). Generate with `claude setup-token`. For Pro/Max users.
+- `REVIEW_CLI_TOKEN` - Token with `packages:read` access to Uniswap's private `@uniswap/review-cli` package. The Claude Code Review workflow skips successfully when it is unavailable.
 - `NODE_AUTH_TOKEN` - NPM registry authentication (for publishing `@uniswap` scoped packages)
 - `WORKFLOW_PAT` - Personal Access Token with `repo` scope for: (1) pushing commits/tags in force-publish, (2) cross-repo access to fetch default prompts from ai-toolkit in `_claude-code-review.yml` and `_generate-pr-metadata.yml`, (3) resolving review threads via GraphQL API in `_claude-code-review.yml` (the default `GITHUB_TOKEN` lacks permissions for the `resolveReviewThread` mutation). **Important:** The account that owns the PAT must have write, maintain, or admin access to the repository for thread resolution to work.
 - `SERVICE_ACCOUNT_GPG_PRIVATE_KEY` - GPG key for signed commits/tags
