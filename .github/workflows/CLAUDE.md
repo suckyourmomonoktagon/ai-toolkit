@@ -507,6 +507,8 @@ When `force_review` is `true`, the workflow bypasses the patch-ID cache and runs
 
 This is how ai-toolkit reviews its **own** PRs. It runs [`@uniswap/review-cli`](https://github.com/Uniswap/internal-tools/tree/main/packages/review-cli) from `Uniswap/internal-tools` and deliberately does **not** call `_claude-code-review.yml`.
 
+**Credential requirement:** `REVIEW_CLI_TOKEN` must have access to Uniswap's private GitHub Packages registry. The repository `GITHUB_TOKEN` cannot read that cross-repository package. When the secret is absent, the workflow reports a notice and skips the AI review.
+
 **Why the two coexist:** `_claude-code-review.yml` is a published product with 10+ external consumers pinned to it by commit SHA. It stays. This repo simply consumes the shared reviewer that `Uniswap/universe` and `Uniswap/backend` already use, so improvements to review quality land in one place instead of three.
 
 **Architecture — two jobs plus three supporting jobs:**
@@ -514,6 +516,7 @@ This is how ai-toolkit reviews its **own** PRs. It runs [`@uniswap/review-cli`](
 | Job                     | Runs when                                       | Does                                                                                     |
 | ----------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `check-automated`       | `pull_request` only                             | Classifies automated PRs via the shared `check-automated-pr` action (title + branch)     |
+| `review-cli-credentials` | Always                                          | Verifies the GitHub Packages credential is configured                                    |
 | `triage`                | Gate passes                                     | `review-cli triage` decides run/skip, resolves the PR number, fork check, 👀 ack + reply |
 | `review`                | `triage.run == true` and not a fork             | Installs the CLI + Claude binary, then `review` (analyze) followed by `post` (write)     |
 | `review-skipped`        | Automated PR that isn't a dependency PR         | Emits a `::notice::` so the run explains itself                                          |
