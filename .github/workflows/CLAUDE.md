@@ -645,7 +645,7 @@ This workflow validates that PR documentation is properly updated based on code 
 
 | Secret                    | Required                                      | Description                                                                                                                               |
 | ------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `ANTHROPIC_API_KEY`       | Yes (unless `CLAUDE_CODE_OAUTH_TOKEN` is set) | Anthropic API key for Claude access                                                                                                       |
+| `ANTHROPIC_API_KEY`       | No (alternative to `CLAUDE_CODE_OAUTH_TOKEN`) | Anthropic API key for Claude access                                                                                                       |
 | `CLAUDE_CODE_OAUTH_TOKEN` | No (alternative to `ANTHROPIC_API_KEY`)       | Claude Code OAuth token for authentication. When provided, takes precedence over `ANTHROPIC_API_KEY`. Generate with `claude setup-token`. |
 | `WORKFLOW_PAT`            | No                                            | Personal Access Token with `repo` scope. Needed for fixup branch creation and auto-fix push access.                                       |
 
