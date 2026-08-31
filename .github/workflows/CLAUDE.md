@@ -612,17 +612,17 @@ This workflow validates that PR documentation is properly updated based on code 
 
 **Key Features:**
 
-| Feature                     | Description                                                                        |
-| --------------------------- | ---------------------------------------------------------------------------------- |
-| **CLAUDE.md Validation**    | Checks if CLAUDE.md files need updating when code in their scope changes           |
-| **README Validation**       | Verifies README files reflect current state                                        |
-| **Plugin Version Checking** | Ensures plugin versions are bumped when plugin code changes (critical for plugins) |
-| **Commit Suggestions**      | Provides GitHub commit suggestions users can apply with one click                  |
-| **Fixup Branch Creation**   | For larger changes, creates a fixup branch that can be merged into the PR          |
-| **Auto-Commit Mode**        | Optionally auto-commit and push all suggestions directly to the PR branch          |
-| **Pass/Fail Verdict**       | Returns clear pass/fail status for CI integration                                  |
-| **Auto-Fix Mode**           | Optionally auto-fix documentation issues and push changes (triggers re-check)      |
-| **Dual Authentication**     | Supports both API key and OAuth token authentication (OAuth takes precedence)      |
+| Feature                     | Description                                                                                                             |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **CLAUDE.md Validation**    | Checks if CLAUDE.md files need updating when code in their scope changes                                                |
+| **README Validation**       | Verifies README files reflect current state                                                                             |
+| **Plugin Version Checking** | Ensures plugin versions are bumped when plugin code changes (critical for plugins)                                      |
+| **Commit Suggestions**      | Provides GitHub commit suggestions users can apply with one click                                                       |
+| **Fixup Branch Creation**   | For larger changes, creates a fixup branch that can be merged into the PR                                               |
+| **Auto-Commit Mode**        | Optionally auto-commit and push all suggestions directly to the PR branch                                               |
+| **Pass/Fail Verdict**       | Returns clear pass/fail status for CI integration                                                                       |
+| **Auto-Fix Mode**           | Optionally auto-fix documentation issues and push changes (triggers re-check)                                           |
+| **Dual Authentication**     | Supports both API key and OAuth token authentication (OAuth takes precedence); skips cleanly when neither is configured |
 
 **Suggestion Modes:**
 
@@ -655,7 +655,7 @@ You can authenticate with Claude using either method:
 1. **API Key (Traditional):** Set `ANTHROPIC_API_KEY` with your Anthropic API key
 2. **OAuth Token (Pro/Max Users):** Set `CLAUDE_CODE_OAUTH_TOKEN` with a token generated via `claude setup-token`
 
-If both are provided, OAuth token takes precedence. At least one authentication method must be configured.
+If both are provided, OAuth token takes precedence. If neither is configured, the workflow reports a notice and skips validation successfully.
 
 > **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
 
