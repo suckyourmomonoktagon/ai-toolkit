@@ -623,7 +623,7 @@ This workflow validates that PR documentation is properly updated based on code 
 | **Auto-Commit Mode**        | Optionally auto-commit and push all suggestions directly to the PR branch          |
 | **Pass/Fail Verdict**       | Returns clear pass/fail status for CI integration                                  |
 | **Auto-Fix Mode**           | Optionally auto-fix documentation issues and push changes (triggers re-check)      |
-| **Dual Authentication**     | Supports both API key and OAuth token authentication (OAuth takes precedence)      |
+| **Dual Authentication**     | Supports both API key and OAuth token authentication (OAuth takes precedence); skips without either |
 
 **Suggestion Modes:**
 
@@ -656,7 +656,7 @@ You can authenticate with Claude using either method:
 1. **API Key (Traditional):** Set `ANTHROPIC_API_KEY` with your Anthropic API key
 2. **OAuth Token (Pro/Max Users):** Set `CLAUDE_CODE_OAUTH_TOKEN` with a token generated via `claude setup-token`
 
-If both are provided, OAuth token takes precedence. At least one authentication method must be configured.
+If both are provided, OAuth token takes precedence. The workflow skips successfully when neither method is configured.
 
 > **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
 
