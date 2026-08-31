@@ -152,7 +152,9 @@ jobs:
         if: steps.check.outputs.needs_update == 'true'
         uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8.1.0
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # GITHUB_TOKEN cannot update workflow files; the PAT needs the
+          # repository workflows permission.
+          token: ${{ secrets.WORKFLOW_PAT }}
           branch: "chore/update-claude-code-action-${{ steps.latest.outputs.latest_tag }}"
           delete-branch: true
           commit-message: |
