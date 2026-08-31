@@ -55,7 +55,7 @@ jobs:
           pr_title: ${{ github.event.pull_request.title }}
 
       - name: Conditional semantic PR check
-        if: ${{ github.event_name == 'pull_request_target' && steps.check-automated.outputs.is_automated != 'true' && !(github.event.pull_request.user.login == 'Copilot' && github.event.pull_request.user.type == 'Bot' && startsWith(github.head_ref, 'copilot/') && startsWith(github.event.pull_request.title, '[WIP]')) }}
+        if: ${{ github.event_name == 'pull_request_target' && steps.check-automated.outputs.is_automated != 'true' && !(github.event.pull_request.user.id == 198982749 && github.event.pull_request.user.login == 'Copilot' && github.event.pull_request.user.type == 'Bot' && startsWith(github.head_ref, 'copilot/') && startsWith(github.event.pull_request.title, '[WIP]')) }}
         uses: amannn/action-semantic-pull-request@536f681e2c60d973396eb60457d42ced8cd3f61a
         with:
           requireScope: true
@@ -70,6 +70,6 @@ jobs:
           echo "Automated PR detected: $SKIP_REASON. This check is automatically passed."
 
       - name: Pass check for Copilot placeholder titles
-        if: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.user.login == 'Copilot' && github.event.pull_request.user.type == 'Bot' && startsWith(github.head_ref, 'copilot/') && startsWith(github.event.pull_request.title, '[WIP]') }}
+        if: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.user.id == 198982749 && github.event.pull_request.user.login == 'Copilot' && github.event.pull_request.user.type == 'Bot' && startsWith(github.head_ref, 'copilot/') && startsWith(github.event.pull_request.title, '[WIP]') }}
         run: |
           echo "Copilot placeholder title detected. This check will run again after title generation."
