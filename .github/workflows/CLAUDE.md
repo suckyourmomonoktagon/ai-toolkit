@@ -25,7 +25,7 @@ Contains GitHub Actions workflow definitions that automate CI/CD, code quality, 
 
 ### PR Title Validation (1 workflow)
 
-- `ci-check-pr-title.yml` - Validates PR titles follow conventional commit format (semantic validation runs on `pull_request_target`; `workflow_run` trigger is follow-up only)
+- `ci-check-pr-title.yml` - Validates PR titles follow conventional commit format (semantic validation runs on `pull_request_target`, except temporary `[WIP]` titles on `copilot/*` branches created by Copilot; `workflow_run` trigger is follow-up only)
 
 ### Autonomous Task Processing (3 workflows)
 
@@ -623,7 +623,7 @@ This workflow validates that PR documentation is properly updated based on code 
 | **Auto-Commit Mode**        | Optionally auto-commit and push all suggestions directly to the PR branch          |
 | **Pass/Fail Verdict**       | Returns clear pass/fail status for CI integration                                  |
 | **Auto-Fix Mode**           | Optionally auto-fix documentation issues and push changes (triggers re-check)      |
-| **Dual Authentication**     | Supports both API key and OAuth token authentication (OAuth takes precedence)      |
+| **Dual Authentication**     | Supports both API key and OAuth token authentication (OAuth takes precedence); skips without either |
 
 **Suggestion Modes:**
 
@@ -645,7 +645,7 @@ This workflow validates that PR documentation is properly updated based on code 
 
 | Secret                    | Required                                      | Description                                                                                                                               |
 | ------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `ANTHROPIC_API_KEY`       | Yes (unless `CLAUDE_CODE_OAUTH_TOKEN` is set) | Anthropic API key for Claude access                                                                                                       |
+| `ANTHROPIC_API_KEY`       | No (alternative to `CLAUDE_CODE_OAUTH_TOKEN`) | Anthropic API key for Claude access                                                                                                       |
 | `CLAUDE_CODE_OAUTH_TOKEN` | No (alternative to `ANTHROPIC_API_KEY`)       | Claude Code OAuth token for authentication. When provided, takes precedence over `ANTHROPIC_API_KEY`. Generate with `claude setup-token`. |
 | `WORKFLOW_PAT`            | No                                            | Personal Access Token with `repo` scope. Needed for fixup branch creation and auto-fix push access.                                       |
 
@@ -656,7 +656,7 @@ You can authenticate with Claude using either method:
 1. **API Key (Traditional):** Set `ANTHROPIC_API_KEY` with your Anthropic API key
 2. **OAuth Token (Pro/Max Users):** Set `CLAUDE_CODE_OAUTH_TOKEN` with a token generated via `claude setup-token`
 
-If both are provided, OAuth token takes precedence. At least one authentication method must be configured.
+If both are provided, OAuth token takes precedence. The workflow skips successfully when neither method is configured.
 
 > **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
 

@@ -54,30 +54,8 @@ jobs:
           branch_name: ${{ github.head_ref }}
           pr_title: ${{ github.event.pull_request.title }}
 
-      # Copilot coding agent PRs are opened with a placeholder "[WIP] ..." title
-      # before the "Claude: Generate PR Title & Description" workflow renames it
-      # to a conventional-commit title. That rename fires a new `edited` event
-      # which re-runs this check against the final title, so it's safe to skip
-      # the semantic check just for this transient, still-placeholder state
-      # instead of failing the run outright. This is intentionally scoped to
-      # this workflow only (not the shared check-automated-pr action) so it
-      # doesn't also skip build/lint/test CI or code review for Copilot PRs.
-      - name: Check for pending Copilot coding agent title
-        id: check-pending-title
-        if: ${{ github.event_name == 'pull_request_target' && steps.check-automated.outputs.is_automated != 'true' }}
-        env:
-          BRANCH_NAME: ${{ github.head_ref }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          PENDING="false"
-          if [[ "$BRANCH_NAME" == copilot/* && "$PR_TITLE" == "[WIP]"* ]]; then
-            PENDING="true"
-            echo "::notice::Copilot coding agent PR still has a placeholder title. The 'Claude: Generate PR Title & Description' workflow will rename it, which re-triggers this check."
-          fi
-          echo "pending=$PENDING" >> "$GITHUB_OUTPUT"
-
       - name: Conditional semantic PR check
-        if: ${{ github.event_name == 'pull_request_target' && steps.check-automated.outputs.is_automated != 'true' && steps.check-pending-title.outputs.pending != 'true' }}
+        if: ${{ github.event_name == 'pull_request_target' && steps.check-automated.outputs.is_automated != 'true' && !(github.event.pull_request.user.id == 198982749 && github.event.pull_request.user.login == 'Copilot' && github.event.pull_request.user.type == 'Bot' && startsWith(github.head_ref, 'copilot/') && startsWith(github.event.pull_request.title, '[WIP]')) }}
         uses: amannn/action-semantic-pull-request@536f681e2c60d973396eb60457d42ced8cd3f61a
         with:
           requireScope: true
@@ -91,7 +69,7 @@ jobs:
         run: |
           echo "Automated PR detected: $SKIP_REASON. This check is automatically passed."
 
-      - name: Pass check for pending Copilot coding agent title
-        if: ${{ steps.check-pending-title.outputs.pending == 'true' }}
+      - name: Pass check for Copilot placeholder titles
+        if: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.user.id == 198982749 && github.event.pull_request.user.login == 'Copilot' && github.event.pull_request.user.type == 'Bot' && startsWith(github.head_ref, 'copilot/') && startsWith(github.event.pull_request.title, '[WIP]') }}
         run: |
-          echo "Copilot coding agent PR has a placeholder title; skipping until it is renamed by the title-generation workflow."
+          echo "Copilot placeholder title detected. This check will run again after title generation."
