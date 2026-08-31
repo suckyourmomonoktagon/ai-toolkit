@@ -1261,7 +1261,7 @@ These workflows are prefixed with two `__` and are only used within this reposit
 ### Consumer Workflows
 
 - `ci-pr-checks.yml` - Main PR validation pipeline
-- `ci-check-pr-title.yml` - PR title format validation; semantic validation runs only for PR events because `workflow_run` cannot infer a pull request
+- `ci-check-pr-title.yml` - PR title format validation; its `workflow_run` follow-up skips semantic validation because that action requires a pull request event.
 - `claude-auto-tasks.yml` - Autonomous task processing from Linear (scheduled)
 - `claude-code.yml` - Enables @claude mentions
 - `claude-code-review.yml` - Automated code reviews via `@uniswap/review-cli`
