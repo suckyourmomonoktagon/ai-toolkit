@@ -192,7 +192,7 @@ jobs:
       # successful, visible no-op rather than failing before triage.
       HAS_REVIEW_CLI_TOKEN: ${{ secrets.REVIEW_CLI_TOKEN != '' }}
     outputs:
-      run: ${{ steps.gate.outputs.run }}
+      run: ${{ steps.gate.outputs.run || steps.credential-gate.outputs.run }}
       pr_number: ${{ steps.gate.outputs.pr_number }}
       comment_id: ${{ steps.gate.outputs.comment_id }}
       trigger_source: ${{ steps.gate.outputs.trigger_source }}
@@ -278,8 +278,11 @@ jobs:
           PY
 
       - name: Note unavailable review-cli credentials
+        id: credential-gate
         if: env.HAS_REVIEW_CLI_TOKEN != 'true'
-        run: echo "::notice::AI review skipped because REVIEW_CLI_TOKEN is not configured to read the private @uniswap/review-cli package."
+        run: |
+          echo "::notice::AI review skipped because REVIEW_CLI_TOKEN is not configured to read the private @uniswap/review-cli package."
+          echo "run=false" >> "$GITHUB_OUTPUT"
 
       - name: Decide whether to run
         id: gate
