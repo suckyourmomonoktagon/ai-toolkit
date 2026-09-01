@@ -1271,6 +1271,7 @@ These workflows are prefixed with two `__` and are only used within this reposit
 - `claude-welcome.yml` - New PR welcomes
 - `dev-ai-newsletter.yml` - Weekly Dev AI Pod newsletter generation (scheduled)
 - `generate-pr-title-description.yml` - Auto-generated PR titles and descriptions
+  - The preflight job uses no permissions; the reusable metadata job has only the read, pull-request write, and OIDC permissions it requires.
 - `release-update-production.yml` - Production sync automation
 - `update-action-versions.yml` - Automated GitHub Actions version updates (scheduled)
 
