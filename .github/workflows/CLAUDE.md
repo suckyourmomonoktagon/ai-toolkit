@@ -11,10 +11,11 @@ Contains GitHub Actions workflow definitions that automate CI/CD, code quality, 
 - `ci-pr-checks.yml` - Validates PRs with build, lint, format, test, and plugin validation checks
 - `claude-welcome.yml` - Posts welcome messages from Claude to new PRs
 
-### Release & Deployment (2 workflows)
+### Release & Deployment (3 workflows)
 
 - `publish-packages.yml` - Unified package publishing workflow (automatic on push to main/next, manual via workflow_dispatch). Also detects changes to reusable workflows and syncs them to the `next` branch with Slack notifications.
 - `release-update-production.yml` - Creates production sync PRs with AI changelogs
+- `generator-generic-ossf-slsa3-publish.yml` - Generates SLSA Level 3 provenance for release artifacts.
 
 ### Code Review & PR Management (4 workflows)
 
