@@ -87,7 +87,7 @@ This workflow enables Claude to respond to @claude mentions in issues, PRs, comm
 | **MCP Support**         | Configure MCP servers via `mcp_config`                                        |
 | **Dual Authentication** | Supports both API key and OAuth token authentication (OAuth takes precedence) |
 
-**Optional Secrets:**
+**Required Secrets:**
 
 | Secret                    | Required                                      | Description                                                                                                                               |
 | ------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
