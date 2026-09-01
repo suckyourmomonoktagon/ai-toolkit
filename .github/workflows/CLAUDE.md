@@ -949,11 +949,11 @@ This reusable workflow queries Linear for issues matching specified criteria and
 | **Matrix Output**    | Outputs JSON matrix compatible with GitHub Actions `strategy.matrix`   |
 | **Configurable**     | Customizable team, label, max issues, and npm tag                      |
 
-**Required Secrets:**
+**Secrets:**
 
 | Secret           | Required | Description                        |
 | ---------------- | -------- | ---------------------------------- |
-| `LINEAR_API_KEY` | Yes      | Linear API key for querying issues |
+| `LINEAR_API_KEY` | No       | Linear API key for querying issues; without it, task preparation returns no tasks |
 
 **Configuration Inputs:**
 
