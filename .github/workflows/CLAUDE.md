@@ -87,7 +87,7 @@ This workflow enables Claude to respond to @claude mentions in issues, PRs, comm
 | **MCP Support**         | Configure MCP servers via `mcp_config`                                        |
 | **Dual Authentication** | Supports both API key and OAuth token authentication (OAuth takes precedence) |
 
-**Required Secrets:**
+**Optional Secrets:**
 
 | Secret                    | Required                                      | Description                                                                                                                               |
 | ------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
@@ -953,7 +953,7 @@ This reusable workflow queries Linear for issues matching specified criteria and
 
 | Secret           | Required | Description                        |
 | ---------------- | -------- | ---------------------------------- |
-| `LINEAR_API_KEY` | Yes      | Linear API key for querying issues |
+| `LINEAR_API_KEY` | No       | Linear API key for querying issues; without it, task preparation returns no tasks |
 
 **Configuration Inputs:**
 
