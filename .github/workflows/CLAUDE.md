@@ -933,6 +933,9 @@ The workflow determines which prompt to use in this priority order:
 2. **`custom_prompt_path` input**: Path to a prompt file in the calling repository (default: `.github/prompts/generate-pr-title-description.md`)
 3. **Default prompt from ai-toolkit**: Fetched from `Uniswap/ai-toolkit` repository (public, no authentication required)
 
+If neither Claude authentication secret is configured, the workflow completes its
+authentication check and skips metadata generation without failing the PR.
+
 ### Linear Task Preparation (`_claude-task-prepare.yml`)
 
 This reusable workflow queries Linear for issues matching specified criteria and outputs a matrix for parallel processing. It's designed to be called by orchestrating workflows that need to fan out to multiple Claude task workers.
@@ -1261,7 +1264,7 @@ These workflows are prefixed with two `__` and are only used within this reposit
 ### Consumer Workflows
 
 - `ci-pr-checks.yml` - Main PR validation pipeline
-- `ci-check-pr-title.yml` - PR title format validation
+- `ci-check-pr-title.yml` - PR title format validation; its `workflow_run` follow-up skips semantic validation because that action requires a pull request event.
 - `claude-auto-tasks.yml` - Autonomous task processing from Linear (scheduled)
 - `claude-code.yml` - Enables @claude mentions
 - `claude-code-review.yml` - Automated code reviews via `@uniswap/review-cli`

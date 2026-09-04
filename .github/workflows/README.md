@@ -11,6 +11,7 @@ Workflows that run automated checks on pull requests and commits.
 | Workflow                                     | Trigger      | Purpose                                                                                      | Status                                                                                          |
 | -------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | [`ci-pr-checks.yml`](./ci-pr-checks.yml)     | Pull Request | Validates installation, builds affected packages, runs linting, formatting checks, and tests | ![PR Checks](https://github.com/owner/repo/actions/workflows/ci-pr-checks.yml/badge.svg)        |
+| [`ci-check-pr-title.yml`](./ci-check-pr-title.yml) | Pull Request and successful PR metadata generation | Validates conventional PR titles; semantic validation is skipped for the metadata workflow follow-up because it cannot infer a PR | |
 | [`claude-welcome.yml`](./claude-welcome.yml) | PR Opened    | Posts welcome message from Claude to newly opened PRs                                        | ![Claude Welcome](https://github.com/owner/repo/actions/workflows/claude-welcome.yml/badge.svg) |
 
 **Key Features:**
