@@ -38,9 +38,10 @@ Contains GitHub Actions workflow definitions that automate CI/CD, code quality, 
 
 - `dev-ai-newsletter.yml` - Weekly Dev AI Pod newsletter generation using Claude with Notion and Slack MCPs
 
-### Dependency Management (2 workflows)
+### Dependency Management (3 workflows)
 
 - `update-action-versions.yml` - Scheduled workflow to update GitHub Actions to latest versions
+- `update-claude-code-action.yml` - Updates the Claude Code Action SHA; requires `WORKFLOW_PAT` with workflow-file write access
 - `_update-action-versions-worker.yml` - Reusable worker for analyzing and updating action versions
 
 ### Reusable Workflows (10 workflows, prefixed with `_`)
