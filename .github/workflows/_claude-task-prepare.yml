@@ -34,8 +34,9 @@
 # - result: Full query result JSON for summary/debugging
 # - linear_task_utils_tag: Resolved tag for passing to worker
 #
-# SECRETS REQUIRED:
-# - LINEAR_API_KEY: Linear API key for querying issues
+# OPTIONAL SECRETS:
+# - LINEAR_API_KEY: Linear API key for querying issues. Without it, the workflow
+#   completes successfully with an empty task matrix.
 
 name: "[claude] Task Prepare"
 
@@ -90,15 +91,15 @@ on:
     secrets:
       LINEAR_API_KEY:
         description: "Linear API key for querying issues"
-        required: true
+        required: false
 
 jobs:
   prepare:
     runs-on: ubuntu-latest
     outputs:
-      matrix_json: ${{ steps.query.outputs.matrix_json }}
-      result: ${{ steps.query.outputs.result }}
-      has_tasks: ${{ steps.query.outputs.has_tasks }}
+      matrix_json: ${{ steps.query.outputs.matrix_json || '{"include":[]}' }}
+      result: ${{ steps.query.outputs.result || '{"count":0,"include":[]}' }}
+      has_tasks: ${{ steps.query.outputs.has_tasks || 'false' }}
       linear_task_utils_tag: ${{ inputs.linear_task_utils_tag }}
 
     steps:
@@ -108,24 +109,39 @@ jobs:
         with:
           egress-policy: audit
 
+      - name: Check Linear configuration
+        id: linear-api-key
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        run: |
+          if [ -n "$LINEAR_API_KEY" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout repository
+        if: ${{ steps.linear-api-key.outputs.configured == 'true' }}
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
           ref: ${{ inputs.target_branch }}
 
       - name: Setup Node.js
+        if: ${{ steps.linear-api-key.outputs.configured == 'true' }}
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: "24"
 
       - name: Setup Bun
+        if: ${{ steps.linear-api-key.outputs.configured == 'true' }}
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: "1.3.12"
 
       # Ensure the claude label exists
       - name: Ensure label exists
+        if: ${{ steps.linear-api-key.outputs.configured == 'true' }}
         run: |
           bunx "@uniswap/ai-toolkit-linear-task-utils@${LINEAR_TASK_UTILS_TAG}" ensure-label \
             --team "$LINEAR_TEAM" \
@@ -139,6 +155,7 @@ jobs:
       # Query Linear for issues
       - name: Query Linear issues
         id: query
+        if: ${{ steps.linear-api-key.outputs.configured == 'true' }}
         run: |
           RESULT=$(bunx "@uniswap/ai-toolkit-linear-task-utils@${LINEAR_TASK_UTILS_TAG}" query \
             --team "$LINEAR_TEAM" \
@@ -170,10 +187,14 @@ jobs:
           LINEAR_LABEL: ${{ inputs.linear_label }}
           MAX_ISSUES: ${{ inputs.max_issues }}
 
+      - name: Skip Linear task preparation
+        if: ${{ steps.linear-api-key.outputs.configured != 'true' }}
+        run: echo "::notice::Skipping Linear task preparation because LINEAR_API_KEY is not configured."
+
       # Create summary for prepare job
       - name: Create prepare summary
         env:
-          QUERY_RESULT: ${{ steps.query.outputs.result }}
+          QUERY_RESULT: ${{ steps.query.outputs.result || '{"count":0,"include":[]}' }}
           INPUT_LINEAR_TEAM: ${{ inputs.linear_team }}
           INPUT_LINEAR_LABEL: ${{ inputs.linear_label }}
           INPUT_MAX_ISSUES: ${{ inputs.max_issues }}

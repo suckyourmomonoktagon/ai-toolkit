@@ -11,10 +11,11 @@ Contains GitHub Actions workflow definitions that automate CI/CD, code quality, 
 - `ci-pr-checks.yml` - Validates PRs with build, lint, format, test, and plugin validation checks
 - `claude-welcome.yml` - Posts welcome messages from Claude to new PRs
 
-### Release & Deployment (2 workflows)
+### Release & Deployment (3 workflows)
 
 - `publish-packages.yml` - Unified package publishing workflow (automatic on push to main/next, manual via workflow_dispatch). Also detects changes to reusable workflows and syncs them to the `next` branch with Slack notifications.
 - `release-update-production.yml` - Creates production sync PRs with AI changelogs
+- `generator-generic-ossf-slsa3-publish.yml` - Generates SLSA Level 3 provenance for release artifacts.
 
 ### Code Review & PR Management (4 workflows)
 
@@ -37,9 +38,10 @@ Contains GitHub Actions workflow definitions that automate CI/CD, code quality, 
 
 - `dev-ai-newsletter.yml` - Weekly Dev AI Pod newsletter generation using Claude with Notion and Slack MCPs
 
-### Dependency Management (2 workflows)
+### Dependency Management (3 workflows)
 
 - `update-action-versions.yml` - Scheduled workflow to update GitHub Actions to latest versions
+- `update-claude-code-action.yml` - Updates the Claude Code Action SHA; requires `WORKFLOW_PAT` with workflow-file write access
 - `_update-action-versions-worker.yml` - Reusable worker for analyzing and updating action versions
 
 ### Reusable Workflows (10 workflows, prefixed with `_`)
@@ -620,7 +622,7 @@ This workflow validates that PR documentation is properly updated based on code 
 | **Auto-Commit Mode**        | Optionally auto-commit and push all suggestions directly to the PR branch          |
 | **Pass/Fail Verdict**       | Returns clear pass/fail status for CI integration                                  |
 | **Auto-Fix Mode**           | Optionally auto-fix documentation issues and push changes (triggers re-check)      |
-| **Dual Authentication**     | Supports both API key and OAuth token authentication (OAuth takes precedence)      |
+| **Dual Authentication**     | Supports both API key and OAuth token authentication; skips if neither is configured |
 
 **Suggestion Modes:**
 
@@ -653,7 +655,7 @@ You can authenticate with Claude using either method:
 1. **API Key (Traditional):** Set `ANTHROPIC_API_KEY` with your Anthropic API key
 2. **OAuth Token (Pro/Max Users):** Set `CLAUDE_CODE_OAUTH_TOKEN` with a token generated via `claude setup-token`
 
-If both are provided, OAuth token takes precedence. At least one authentication method must be configured.
+If both are provided, OAuth token takes precedence. If neither is configured, the workflow reports a notice and skips validation successfully.
 
 > **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
 
@@ -933,6 +935,9 @@ The workflow determines which prompt to use in this priority order:
 2. **`custom_prompt_path` input**: Path to a prompt file in the calling repository (default: `.github/prompts/generate-pr-title-description.md`)
 3. **Default prompt from ai-toolkit**: Fetched from `Uniswap/ai-toolkit` repository (public, no authentication required)
 
+If neither Claude authentication secret is configured, the workflow completes its
+authentication check and skips metadata generation without failing the PR.
+
 ### Linear Task Preparation (`_claude-task-prepare.yml`)
 
 This reusable workflow queries Linear for issues matching specified criteria and outputs a matrix for parallel processing. It's designed to be called by orchestrating workflows that need to fan out to multiple Claude task workers.
@@ -946,11 +951,11 @@ This reusable workflow queries Linear for issues matching specified criteria and
 | **Matrix Output**    | Outputs JSON matrix compatible with GitHub Actions `strategy.matrix`   |
 | **Configurable**     | Customizable team, label, max issues, and npm tag                      |
 
-**Required Secrets:**
+**Secrets:**
 
 | Secret           | Required | Description                        |
 | ---------------- | -------- | ---------------------------------- |
-| `LINEAR_API_KEY` | Yes      | Linear API key for querying issues |
+| `LINEAR_API_KEY` | No       | Linear API key for querying issues; without it, task preparation returns no tasks |
 
 **Configuration Inputs:**
 
@@ -1261,7 +1266,7 @@ These workflows are prefixed with two `__` and are only used within this reposit
 ### Consumer Workflows
 
 - `ci-pr-checks.yml` - Main PR validation pipeline
-- `ci-check-pr-title.yml` - PR title format validation
+- `ci-check-pr-title.yml` - PR title format validation; its `workflow_run` follow-up skips semantic validation because that action requires a pull request event.
 - `claude-auto-tasks.yml` - Autonomous task processing from Linear (scheduled)
 - `claude-code.yml` - Enables @claude mentions
 - `claude-code-review.yml` - Automated code reviews via `@uniswap/review-cli`
