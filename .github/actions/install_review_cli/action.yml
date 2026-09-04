@@ -42,7 +42,7 @@ runs:
     #     Packages. Bun (like npm) only supports per-SCOPE registry
     #     overrides, never per-package, so there is no way to except a
     #     single package from that route.
-    #  2. minimumReleaseAge. The repo's bunfig.toml enforces a 3-day
+    #  2. minimumReleaseAge. The repo's bunfig.toml enforces a 4-day
     #     minimum release age as a supply-chain control, which would
     #     make a freshly published review-cli version uninstallable until
     #     it ages in. The gate applies to exact requests too, so bun errors
