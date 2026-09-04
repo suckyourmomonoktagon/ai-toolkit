@@ -231,6 +231,15 @@ jobs:
             .claude
           sparse-checkout-cone-mode: false
 
+      - name: Verify review-cli token present
+        env:
+          REVIEW_CLI_TOKEN: ${{ secrets.REVIEW_CLI_TOKEN }}
+        run: |
+          if [ -z "$REVIEW_CLI_TOKEN" ]; then
+            echo "::error::REVIEW_CLI_TOKEN is not configured. Add the secret with packages:read access to install @uniswap/review-cli."
+            exit 1
+          fi
+
       - name: Install review-cli
         id: install-review-cli
         uses: ./.github/actions/install_review_cli
@@ -550,6 +559,15 @@ jobs:
           if [ -n "$(git status --porcelain)" ]; then
             echo "::warning::working tree is not clean; review-cli will extract diff-only files and agents will lose whole-repo reads"
             git status --porcelain
+          fi
+
+      - name: Verify review-cli token present
+        env:
+          REVIEW_CLI_TOKEN: ${{ secrets.REVIEW_CLI_TOKEN }}
+        run: |
+          if [ -z "$REVIEW_CLI_TOKEN" ]; then
+            echo "::error::REVIEW_CLI_TOKEN is not configured. Add the secret with packages:read access to install @uniswap/review-cli."
+            exit 1
           fi
 
       - name: Install review-cli
