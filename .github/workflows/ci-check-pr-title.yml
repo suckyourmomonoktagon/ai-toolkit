@@ -55,7 +55,7 @@ jobs:
           pr_title: ${{ github.event.pull_request.title }}
 
       - name: Conditional semantic PR check
-        if: ${{ github.event_name == 'pull_request_target' && steps.check-automated.outputs.is_automated != 'true' }}
+        if: ${{ steps.check-automated.outputs.is_automated != 'true' }}
         uses: amannn/action-semantic-pull-request@536f681e2c60d973396eb60457d42ced8cd3f61a
         with:
           requireScope: true
