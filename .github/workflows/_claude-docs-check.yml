@@ -179,7 +179,43 @@ env:
   BUN_CONFIG_FILE: /dev/null
 
 jobs:
+  check-authentication:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      has_auth: ${{ steps.check.outputs.has_auth }}
+    steps:
+      # Security scanning — must be the first step in every non-macOS job.
+      - name: Security Scan
+        uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3 # v0.8.4
+        with:
+          egress-policy: block
+          allowed-domains: |
+            release-assets.githubusercontent.com
+            raw.githubusercontent.com
+            api.anthropic.com
+            claude.ai
+            downloads.claude.ai
+            registry.npmjs.org
+          enable-sudo: false
+
+      - name: Check authentication availability
+        id: check
+        env:
+          API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -n "$API_KEY" ] || [ -n "$OAUTH_TOKEN" ]; then
+            echo "has_auth=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_auth=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping PR documentation validation because no Claude authentication is configured."
+          fi
+
   docs-check:
+    needs: check-authentication
+    if: needs.check-authentication.outputs.has_auth == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: ${{ inputs.timeout_minutes }}
     env:
