@@ -231,17 +231,21 @@ jobs:
             .claude
           sparse-checkout-cone-mode: false
 
-      - name: Verify review-cli token present
+      - name: Check for review-cli token
+        id: review-cli-token
         env:
           REVIEW_CLI_TOKEN: ${{ secrets.REVIEW_CLI_TOKEN }}
         run: |
           if [ -z "$REVIEW_CLI_TOKEN" ]; then
-            echo "::error::REVIEW_CLI_TOKEN is not configured. Add the secret with packages:read access to install @uniswap/review-cli."
-            exit 1
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::REVIEW_CLI_TOKEN is not configured; skipping Claude Code Review."
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Install review-cli
         id: install-review-cli
+        if: steps.review-cli-token.outputs.present == 'true'
         uses: ./.github/actions/install_review_cli
         with:
           # Pinned, never `@latest`, so an upstream release cannot change
@@ -258,6 +262,7 @@ jobs:
       # would silently stop reviewing dependency PRs (breaking
       # auto-merge) with a green run and no signal. Fail loudly instead.
       - name: Verify review config is present
+        if: steps.review-cli-token.outputs.present == 'true'
         run: |
           set -euo pipefail
           if [ ! -s .claude/review.yml ]; then
@@ -281,6 +286,7 @@ jobs:
 
       - name: Decide whether to run
         id: gate
+        if: steps.review-cli-token.outputs.present == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REVIEW_CLI_BIN: ${{ steps.install-review-cli.outputs.bin-path }}
