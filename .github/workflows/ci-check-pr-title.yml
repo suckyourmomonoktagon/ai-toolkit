@@ -68,3 +68,7 @@ jobs:
           SKIP_REASON: ${{ steps.check-automated.outputs.skip_reason }}
         run: |
           echo "Automated PR detected: $SKIP_REASON. This check is automatically passed."
+
+      - name: Skip semantic PR check after title generation
+        if: ${{ github.event_name == 'workflow_run' }}
+        run: echo "Skipping semantic PR check because it requires a pull request event."
