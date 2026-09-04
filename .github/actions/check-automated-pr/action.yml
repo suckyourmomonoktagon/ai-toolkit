@@ -18,7 +18,7 @@ outputs:
     description: 'Human-readable reason for skipping (empty if not automated)'
     value: ${{ steps.check.outputs.skip_reason }}
   category:
-    description: 'Category of automation (release, sync, deps, merge-queue, action-update, or empty)'
+    description: 'Category of automation (copilot, release, sync, deps, merge-queue, action-update, or empty)'
     value: ${{ steps.check.outputs.category }}
 
 runs:
@@ -44,6 +44,12 @@ runs:
           IS_AUTOMATED="true"
           SKIP_REASON="Graphite merge queue branch (gtmq* prefix)"
           CATEGORY="merge-queue"
+
+        # Copilot-created branches
+        elif [[ "$BRANCH_NAME" == copilot/* ]]; then
+          IS_AUTOMATED="true"
+          SKIP_REASON="Copilot branch (copilot/* prefix)"
+          CATEGORY="copilot"
 
         # GitHub merge queue branches
         elif [[ "$BRANCH_NAME" == gh-readonly-queue/* ]]; then
