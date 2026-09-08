@@ -38,7 +38,7 @@ Workflows that handle versioning, publishing, and production deployments.
 | Workflow                                                           | Trigger                  | Purpose                                                                        | Status                                                                                                        |
 | ------------------------------------------------------------------ | ------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
 | [`release-publish-packages.yml`](./release-publish-packages.yml)   | Push to `main` or `next` | Versions, builds, and publishes packages to NPM registry                       | ![Publish](https://github.com/owner/repo/actions/workflows/release-publish-packages.yml/badge.svg)            |
-| [`release-update-production.yml`](./release-update-production.yml) | Manual dispatch          | Creates PR to sync `next` branch changes to `main` with AI-generated changelog; skips when `main` does not exist | ![Update Production](https://github.com/owner/repo/actions/workflows/release-update-production.yml/badge.svg) |
+| [`release-update-production.yml`](./release-update-production.yml) | Manual dispatch          | Creates PR to sync `next` branch changes to `main` with AI-generated changelog; skips safely if `main` does not exist | ![Update Production](https://github.com/owner/repo/actions/workflows/release-update-production.yml/badge.svg) |
 
 **Key Features:**
 

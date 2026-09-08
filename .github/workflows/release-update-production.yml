@@ -113,10 +113,10 @@ jobs:
           echo "Remote branches:"
           git branch -r
 
-          # The repository currently has no production branch, so there is
-          # nothing to promote until `main` is created.
+          # Skip cleanly when the production branch has not been created yet.
           if ! git show-ref --verify --quiet refs/remotes/origin/main; then
-            echo "::warning::Production branch 'main' does not exist; skipping production sync"
+            echo "Production branch 'main' does not exist; skipping release PR creation"
+            echo "commit_count=0" >> "$GITHUB_OUTPUT"
             echo "pr_created=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi

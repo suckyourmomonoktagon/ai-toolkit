@@ -285,14 +285,22 @@ jobs:
 
       - name: Decide whether to run
         id: gate
-        if: env.HAS_REVIEW_CLI_TOKEN == 'true' && steps.install-review-cli.outcome == 'success'
+        if: |
+          env.HAS_REVIEW_CLI_TOKEN == 'true' &&
+          steps.install-review-cli.outcome == 'success' &&
+          steps.install-review-cli.outputs.bin-path != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REVIEW_CLI_BIN: ${{ steps.install-review-cli.outputs.bin-path }}
         run: '"$REVIEW_CLI_BIN/review-cli" triage --from-github-actions'
 
       - name: Note unavailable review-cli
-        if: env.HAS_REVIEW_CLI_TOKEN == 'true' && steps.install-review-cli.outcome != 'success'
+        if: |
+          env.HAS_REVIEW_CLI_TOKEN == 'true' &&
+          (
+            steps.install-review-cli.outcome != 'success' ||
+            steps.install-review-cli.outputs.bin-path == ''
+          )
         run: echo "::warning::AI review skipped because REVIEW_CLI_TOKEN could not access @uniswap/review-cli from GitHub Packages."
 
       # A declining gate is otherwise a fully green, fully PR-invisible

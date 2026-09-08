@@ -75,7 +75,10 @@ runs:
         EOF
         cd "$install_dir"
         bun init -y > /dev/null
-        bun add "@uniswap/review-cli@${REVIEW_CLI_VERSION}"
+        if ! bun add "@uniswap/review-cli@${REVIEW_CLI_VERSION}"; then
+          echo "::warning::Unable to access @uniswap/review-cli from GitHub Packages; continuing without AI review."
+          exit 0
+        fi
 
         # Consumers gate on `bin-path != ''` to avoid resolving
         # "$REVIEW_CLI_BIN/review-cli" to "/review-cli" and dying on exit 127.
