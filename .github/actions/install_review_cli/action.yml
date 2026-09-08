@@ -75,7 +75,9 @@ runs:
         EOF
         cd "$install_dir"
         bun init -y > /dev/null
-        if ! bun add "@uniswap/review-cli@${REVIEW_CLI_VERSION}"; then
+        if bun add "@uniswap/review-cli@${REVIEW_CLI_VERSION}"; then
+          :
+        else
           echo "::warning::Unable to access @uniswap/review-cli from GitHub Packages; continuing without AI review."
           exit 0
         fi
