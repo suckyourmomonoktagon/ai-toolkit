@@ -38,11 +38,17 @@ jobs:
     # - Dependabot PRs (already have proper titles)
     # - Release PRs (have their own format)
     # - Production promotion PRs (have their own format)
+    # - Neither Claude credential is configured: the reusable workflow's
+    #   "Validate authentication" step hard-fails in that case (by design,
+    #   for repos that installed this workflow but forgot the secret), which
+    #   would otherwise turn every PR in a repo without these secrets red.
+    #   Skipping here mirrors the LINEAR_API_KEY gate on claude-auto-tasks.yml.
     if: |
       !contains(github.head_ref, 'gh-readonly-queue/') &&
       !contains(github.head_ref, 'dependabot/') &&
       !contains(github.head_ref, 'release/') &&
-      !startsWith(github.event.pull_request.title, 'chore(release):')
+      !startsWith(github.event.pull_request.title, 'chore(release):') &&
+      (secrets.ANTHROPIC_API_KEY != '' || secrets.CLAUDE_CODE_OAUTH_TOKEN != '')
 
     uses: ./.github/workflows/_generate-pr-metadata.yml
     with:
