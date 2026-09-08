@@ -152,6 +152,12 @@ on:
         type: boolean
         default: true
 
+      auth_configured:
+        description: "Whether Claude authentication is configured by the calling workflow"
+        required: false
+        type: boolean
+        default: true
+
     secrets:
       ANTHROPIC_API_KEY:
         description: "Anthropic API key for Claude access. Required unless CLAUDE_CODE_OAUTH_TOKEN is provided."
@@ -165,6 +171,7 @@ on:
 
 jobs:
   generate-metadata:
+    if: inputs.auth_configured
     runs-on: ubuntu-latest
     timeout-minutes: ${{ inputs.timeout_minutes }}
 
