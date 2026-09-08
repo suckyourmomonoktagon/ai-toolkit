@@ -88,7 +88,8 @@ jobs:
       # changes; pinning to 'main' avoids that.
       toolkit_ref: 'main'
     secrets:
-      # Use OAuth token (Pro/Max) instead of API key
+      # Use OAuth token (Pro/Max) or API key for authentication
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       # PAT for branch creation
       WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
