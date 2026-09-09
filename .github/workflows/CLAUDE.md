@@ -14,7 +14,7 @@ Contains GitHub Actions workflow definitions that automate CI/CD, code quality, 
 ### Release & Deployment (3 workflows)
 
 - `publish-packages.yml` - Unified package publishing workflow (automatic on push to main/next, manual via workflow_dispatch). Also detects changes to reusable workflows and syncs them to the `next` branch with Slack notifications.
-- `release-update-production.yml` - Creates production sync PRs with AI changelogs
+- `release-update-production.yml` - Creates production sync PRs with AI changelogs, skipping safely when the `main` branch is unavailable
 - `generator-generic-ossf-slsa3-publish.yml` - Generates SLSA Level 3 provenance for release artifacts.
 
 ### Code Review & PR Management (4 workflows)
@@ -570,7 +570,7 @@ So the `triage` job does a sparse checkout of `.github/actions` and `.claude`, a
 | `.claude/agents/*-reviewer.md`       | Repo-specific reviewers, **added to** review-cli's bundled set (not replacing it)                                                                   |
 | `.github/actions/install_review_cli` | Installs the CLI from GitHub Packages into an isolated `$RUNNER_TEMP` dir. In the `review` job it is resolved from the trusted ref, not the PR head |
 | `vars.REVIEW_CLI_VERSION`            | CLI version override; falls back to the pin in the workflow. Never `@latest`                                                                        |
-| `secrets.REVIEW_CLI_TOKEN`         | Optional. A token with `packages:read` access; when absent or unusable, the triage job reports a notice and skips AI review successfully.           |
+| `secrets.REVIEW_CLI_TOKEN`         | Optional. A token with `packages:read` access; when absent or unable to access the package, the triage job reports a notice and skips AI review successfully. |
 | `secrets.CLAUDE_CODE_OAUTH_TOKEN`    | **Required.** `ANTHROPIC_API_KEY` is deliberately never forwarded to the review job                                                                 |
 | `secrets.DATADOG_API_KEY`            | Optional. Enables CI Visibility stamping; the step is skipped when unset                                                                            |
 
@@ -656,7 +656,7 @@ You can authenticate with Claude using either method:
 1. **API Key (Traditional):** Set `ANTHROPIC_API_KEY` with your Anthropic API key
 2. **OAuth Token (Pro/Max Users):** Set `CLAUDE_CODE_OAUTH_TOKEN` with a token generated via `claude setup-token`
 
-If both are provided, OAuth token takes precedence. If neither is configured, the workflow reports a notice and skips validation successfully.
+If both are provided, OAuth token takes precedence. A preflight job checks for either credential; if neither is configured, the workflow reports a notice and skips validation successfully.
 
 > **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
 

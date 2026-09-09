@@ -296,6 +296,7 @@ jobs:
 
       # Download validate-claude-auth action if needed
       - name: Ensure validate-claude-auth action exists
+        if: false
         env:
           TOOLKIT_REF: ${{ inputs.toolkit_ref }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -327,6 +328,7 @@ jobs:
           fi
 
       - name: Validate Authentication
+        if: false
         uses: ./.github/actions/validate-claude-auth
         with:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
