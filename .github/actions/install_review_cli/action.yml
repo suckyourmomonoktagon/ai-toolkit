@@ -80,14 +80,26 @@ runs:
           exit 0
         fi
 
+        package_dir="$install_dir/node_modules/@uniswap/review-cli"
+        bin_path="$install_dir/node_modules/.bin/review-cli"
+
+        # Bun can report the GitHub Packages 403 in stdout/stderr without
+        # tripping the `if ! bun add ...` guard above, leaving no installed
+        # package and no binary. Treat that the same as the direct failure
+        # path: warn and let callers skip AI review cleanly.
+        if [ ! -d "$package_dir" ]; then
+          echo "::warning::Unable to access @uniswap/review-cli from GitHub Packages; continuing without AI review."
+          exit 0
+        fi
+
         # Consumers gate on `bin-path != ''` to avoid resolving
         # "$REVIEW_CLI_BIN/review-cli" to "/review-cli" and dying on exit 127.
         # That gate cannot catch a `bun add` that succeeds without linking the
         # shim (a future major renaming its `bin` key, or a bun bin-linking
         # change): bin-path would be non-empty and every gate would pass.
         # Verify the binary is actually there and executable.
-        if [ ! -x "$install_dir/node_modules/.bin/review-cli" ]; then
-          echo "::error::bun add succeeded but $install_dir/node_modules/.bin/review-cli is missing or not executable"
+        if [ ! -x "$bin_path" ]; then
+          echo "::error::bun add installed $package_dir but $bin_path is missing or not executable"
           exit 1
         fi
         echo "bin-path=$install_dir/node_modules/.bin" >> "$GITHUB_OUTPUT"

@@ -564,15 +564,15 @@ So the `triage` job does a sparse checkout of `.github/actions` and `.claude`, a
 
 **Configuration lives in the repo, not in workflow inputs:**
 
-| File / setting                       | Controls                                                                                                                                            |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.claude/review.yml`                 | Model, per-agent budget, skip policy, investigation gate, diff summarization, triage staffing                                                       |
-| `.claude/agents/*-reviewer.md`       | Repo-specific reviewers, **added to** review-cli's bundled set (not replacing it)                                                                   |
-| `.github/actions/install_review_cli` | Installs the CLI from GitHub Packages into an isolated `$RUNNER_TEMP` dir. In the `review` job it is resolved from the trusted ref, not the PR head |
-| `vars.REVIEW_CLI_VERSION`            | CLI version override; falls back to the pin in the workflow. Never `@latest`                                                                        |
-| `secrets.REVIEW_CLI_TOKEN`         | Optional. A token with `packages:read` access; when absent or unable to access the package, the triage job reports a notice and skips AI review successfully. |
-| `secrets.CLAUDE_CODE_OAUTH_TOKEN`    | **Required.** `ANTHROPIC_API_KEY` is deliberately never forwarded to the review job                                                                 |
-| `secrets.DATADOG_API_KEY`            | Optional. Enables CI Visibility stamping; the step is skipped when unset                                                                            |
+| File / setting                       | Controls                                                                                                                                                                                                                                                                                |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.claude/review.yml`                 | Model, per-agent budget, skip policy, investigation gate, diff summarization, triage staffing                                                                                                                                                                                           |
+| `.claude/agents/*-reviewer.md`       | Repo-specific reviewers, **added to** review-cli's bundled set (not replacing it)                                                                                                                                                                                                       |
+| `.github/actions/install_review_cli` | Installs the CLI from GitHub Packages into an isolated `$RUNNER_TEMP` dir. In the `review` job it is resolved from the trusted ref, not the PR head                                                                                                                                     |
+| `vars.REVIEW_CLI_VERSION`            | CLI version override; falls back to the pin in the workflow. Never `@latest`                                                                                                                                                                                                            |
+| `secrets.REVIEW_CLI_TOKEN`           | Optional. A token with `packages:read` access; when absent or unable to access the package, the triage job reports a notice and skips AI review successfully. The installer also treats Bun's "403 but no installed package" path as unavailable review-cli rather than a hard failure. |
+| `secrets.CLAUDE_CODE_OAUTH_TOKEN`    | **Required.** `ANTHROPIC_API_KEY` is deliberately never forwarded to the review job                                                                                                                                                                                                     |
+| `secrets.DATADOG_API_KEY`            | Optional. Enables CI Visibility stamping; the step is skipped when unset                                                                                                                                                                                                                |
 
 **Repo-specific reviewers.** review-cli ships 11 bundled agents: security, correctness, patterns, dependency-upgrade, and general reviewers; contract-security and defi-risk reviewers (neither applicable here, see `triage.guidance`); stack-security-analyst and stack-synthesis for stacked PRs; plus triage and synthesis. ai-toolkit adds two:
 
@@ -613,16 +613,16 @@ This workflow validates that PR documentation is properly updated based on code 
 
 **Key Features:**
 
-| Feature                     | Description                                                                        |
-| --------------------------- | ---------------------------------------------------------------------------------- |
-| **CLAUDE.md Validation**    | Checks if CLAUDE.md files need updating when code in their scope changes           |
-| **README Validation**       | Verifies README files reflect current state                                        |
-| **Plugin Version Checking** | Ensures plugin versions are bumped when plugin code changes (critical for plugins) |
-| **Commit Suggestions**      | Provides GitHub commit suggestions users can apply with one click                  |
-| **Fixup Branch Creation**   | For larger changes, creates a fixup branch that can be merged into the PR          |
-| **Auto-Commit Mode**        | Optionally auto-commit and push all suggestions directly to the PR branch          |
-| **Pass/Fail Verdict**       | Returns clear pass/fail status for CI integration                                  |
-| **Auto-Fix Mode**           | Optionally auto-fix documentation issues and push changes (triggers re-check)      |
+| Feature                     | Description                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------ |
+| **CLAUDE.md Validation**    | Checks if CLAUDE.md files need updating when code in their scope changes             |
+| **README Validation**       | Verifies README files reflect current state                                          |
+| **Plugin Version Checking** | Ensures plugin versions are bumped when plugin code changes (critical for plugins)   |
+| **Commit Suggestions**      | Provides GitHub commit suggestions users can apply with one click                    |
+| **Fixup Branch Creation**   | For larger changes, creates a fixup branch that can be merged into the PR            |
+| **Auto-Commit Mode**        | Optionally auto-commit and push all suggestions directly to the PR branch            |
+| **Pass/Fail Verdict**       | Returns clear pass/fail status for CI integration                                    |
+| **Auto-Fix Mode**           | Optionally auto-fix documentation issues and push changes (triggers re-check)        |
 | **Dual Authentication**     | Supports both API key and OAuth token authentication; skips if neither is configured |
 
 **Suggestion Modes:**
@@ -954,8 +954,8 @@ This reusable workflow queries Linear for issues matching specified criteria and
 
 **Secrets:**
 
-| Secret           | Required | Description                        |
-| ---------------- | -------- | ---------------------------------- |
+| Secret           | Required | Description                                                                       |
+| ---------------- | -------- | --------------------------------------------------------------------------------- |
 | `LINEAR_API_KEY` | No       | Linear API key for querying issues; without it, task preparation returns no tasks |
 
 **Configuration Inputs:**
