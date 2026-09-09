@@ -302,7 +302,7 @@ jobs:
 
       - name: Note that review-cli installation failed
         if: env.HAS_REVIEW_CLI_TOKEN == 'true' && steps.install-review-cli.outcome == 'failure'
-        run: echo "::notice::AI review skipped because review-cli installation failed. See the install step logs; authentication failures require REVIEW_CLI_TOKEN packages:read access."
+        run: echo "::notice::AI review skipped because review-cli installation failed. See the install step logs for the cause."
 
       # Fork guard. The review job checks out PR head code and runs an
       # agent with Bash tool access, so a fork PR must never reach it.
