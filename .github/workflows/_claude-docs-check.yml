@@ -27,6 +27,7 @@ name: "[claude] PR Documentation Validator"
 # VERDICT LOGIC:
 # - PASS: No issues found OR only info/minor severity suggestions
 # - FAIL: Any error-level issues (e.g., missing plugin version bump)
+# - SKIP: Claude authentication is not configured
 #
 # PERMISSIONS REQUIRED (calling workflow must grant these):
 #   contents: write (for branch creation)
@@ -155,7 +156,7 @@ on:
 
     outputs:
       verdict:
-        description: "PASS or FAIL"
+        description: "PASS, FAIL, or SKIP"
         value: ${{ jobs.docs-check.outputs.verdict }}
       suggestion_count:
         description: "Number of suggestions made"
@@ -724,8 +725,8 @@ jobs:
       # Extract and process results
       - name: Process Results
         id: process-results
-        if: steps.validate-auth.outputs.authenticated == 'true'
         env:
+          AUTHENTICATED: ${{ steps.validate-auth.outputs.authenticated }}
           STRUCTURED_OUTPUT: ${{ steps.claude.outputs.structured_output }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
@@ -739,6 +740,16 @@ jobs:
           set -euo pipefail
 
           echo "ℹ️  Processing Claude's docs check output..."
+
+          if [ "$AUTHENTICATED" != "true" ]; then
+            echo "ℹ️  Claude authentication is not configured; skipping docs check output processing"
+            echo "verdict=SKIP" >> "$GITHUB_OUTPUT"
+            echo "suggestion_count=0" >> "$GITHUB_OUTPUT"
+            echo "branch_name=" >> "$GITHUB_OUTPUT"
+            echo "branch_url=" >> "$GITHUB_OUTPUT"
+            echo "commits_pushed=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
           if [ -z "$STRUCTURED_OUTPUT" ]; then
             echo "❌ No structured output from Claude"

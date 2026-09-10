@@ -620,7 +620,7 @@ This workflow validates that PR documentation is properly updated based on code 
 | **Commit Suggestions**      | Provides GitHub commit suggestions users can apply with one click                  |
 | **Fixup Branch Creation**   | For larger changes, creates a fixup branch that can be merged into the PR          |
 | **Auto-Commit Mode**        | Optionally auto-commit and push all suggestions directly to the PR branch          |
-| **Pass/Fail Verdict**       | Returns clear pass/fail status for CI integration                                  |
+| **Deterministic Verdict**   | Returns clear PASS/FAIL status or SKIP when Claude authentication is unavailable   |
 | **Auto-Fix Mode**           | Optionally auto-fix documentation issues and push changes (triggers re-check)      |
 | **Dual Authentication**     | Supports both API key and OAuth token authentication (OAuth takes precedence)      |
 
@@ -639,6 +639,7 @@ This workflow validates that PR documentation is properly updated based on code 
 | -------- | ------------------------------------------------------------------- |
 | **PASS** | No issues found OR only info/minor severity suggestions             |
 | **FAIL** | Any error-level issues (e.g., plugin modified without version bump) |
+| **SKIP** | Claude authentication is not configured for the reusable workflow   |
 
 **Required Secrets:**
 
@@ -655,7 +656,7 @@ You can authenticate with Claude using either method:
 1. **API Key (Traditional):** Set `ANTHROPIC_API_KEY` with your Anthropic API key
 2. **OAuth Token (Pro/Max Users):** Set `CLAUDE_CODE_OAUTH_TOKEN` with a token generated via `claude setup-token`
 
-If both are provided, OAuth token takes precedence. At least one authentication method must be configured.
+If both are provided, OAuth token takes precedence. If neither is configured, the reusable workflow returns a `SKIP` verdict instead of running the docs check.
 
 > **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
 
@@ -682,7 +683,7 @@ If both are provided, OAuth token takes precedence. At least one authentication 
 
 | Output             | Description                                         |
 | ------------------ | --------------------------------------------------- |
-| `verdict`          | PASS or FAIL                                        |
+| `verdict`          | PASS, FAIL, or SKIP                                 |
 | `suggestion_count` | Number of suggestions made                          |
 | `branch_name`      | Name of fixup branch (if created)                   |
 | `branch_url`       | URL to fixup branch (if created)                    |
