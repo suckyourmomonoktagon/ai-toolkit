@@ -261,7 +261,7 @@ jobs:
       # would silently stop reviewing dependency PRs (breaking
       # auto-merge) with a green run and no signal. Fail loudly instead.
       - name: Verify review config is present
-        if: env.HAS_REVIEW_CLI_TOKEN == 'true'
+        if: env.HAS_REVIEW_CLI_TOKEN == 'true' && steps.install-review-cli.outcome == 'success'
         run: |
           set -euo pipefail
           if [ ! -s .claude/review.yml ]; then
@@ -301,7 +301,7 @@ jobs:
             steps.install-review-cli.outcome != 'success' ||
             steps.install-review-cli.outputs.bin-path == ''
           )
-        run: echo "::warning::AI review skipped because REVIEW_CLI_TOKEN could not access @uniswap/review-cli from GitHub Packages."
+        run: echo "::notice::AI review skipped because review-cli is unavailable. See the install step logs for the cause."
 
       # A declining gate is otherwise a fully green, fully PR-invisible
       # no-review: `review` is skipped and nothing annotates why. That is
