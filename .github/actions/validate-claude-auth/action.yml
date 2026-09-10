@@ -1,5 +1,5 @@
 # Composite action to validate Claude authentication
-# Ensures at least one of ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN is provided
+# Reports whether ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN is provided
 #
 # Usage:
 #   - name: Validate Authentication
@@ -9,7 +9,7 @@
 #       claude-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
 name: 'Validate Claude Authentication'
-description: 'Validates that at least one Claude authentication method is provided'
+description: 'Validates Claude authentication when configured'
 
 inputs:
   anthropic-api-key:
@@ -21,10 +21,16 @@ inputs:
     required: false
     default: ''
 
+outputs:
+  authenticated:
+    description: 'Whether a Claude authentication method was provided'
+    value: ${{ steps.validate-auth.outputs.authenticated }}
+
 runs:
   using: 'composite'
   steps:
     - name: Validate authentication
+      id: validate-auth
       shell: bash
       env:
         API_KEY: ${{ inputs.anthropic-api-key }}
@@ -34,15 +40,11 @@ runs:
 
         if [ -n "$OAUTH_TOKEN" ]; then
           echo "Using Claude Code OAuth token for authentication"
+          echo "authenticated=true" >> "$GITHUB_OUTPUT"
         elif [ -n "$API_KEY" ]; then
           echo "Using Anthropic API key for authentication"
+          echo "authenticated=true" >> "$GITHUB_OUTPUT"
         else
-          echo "::error::No authentication provided. At least one of ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN must be set."
-          echo ""
-          echo "Authentication options:"
-          echo "  1. ANTHROPIC_API_KEY: Your Anthropic API key"
-          echo "  2. CLAUDE_CODE_OAUTH_TOKEN: OAuth token generated with 'claude setup-token' (Pro/Max users)"
-          echo ""
-          echo "If both are provided, CLAUDE_CODE_OAUTH_TOKEN takes precedence."
-          exit 1
+          echo "::warning::No Claude authentication provided; skipping the documentation check."
+          echo "authenticated=false" >> "$GITHUB_OUTPUT"
         fi
