@@ -55,6 +55,7 @@ jobs:
       generation_mode: "title,description"
       pr_number: ${{ github.event.pull_request.number }}
       base_ref: ${{ github.base_ref }}
+      auth_configured: ${{ secrets.ANTHROPIC_API_KEY != '' || secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
       # Use default model (claude-sonnet-5)
       # Use default timeout (15 minutes)
       # Use default prompt from ai-toolkit
