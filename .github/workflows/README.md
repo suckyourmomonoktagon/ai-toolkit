@@ -8,11 +8,12 @@ This directory contains GitHub Actions workflows for the AI Toolkit monorepo. Wo
 
 Workflows that run automated checks on pull requests and commits.
 
-| Workflow                                     | Trigger      | Purpose                                                                                      | Status                                                                                          |
-| -------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| [`ci-pr-checks.yml`](./ci-pr-checks.yml)     | Pull Request | Validates installation, builds affected packages, runs linting, formatting checks, and tests | ![PR Checks](https://github.com/owner/repo/actions/workflows/ci-pr-checks.yml/badge.svg)        |
-| [`ci-check-pr-title.yml`](./ci-check-pr-title.yml) | Pull Request | Validates conventional PR titles; semantic validation is skipped for automated PRs (per `check-automated-pr`) and for `copilot/*` coding-agent branches, whose titles are machine-generated | |
-| [`claude-welcome.yml`](./claude-welcome.yml) | PR Opened    | Posts welcome message from Claude to newly opened PRs                                        | ![Claude Welcome](https://github.com/owner/repo/actions/workflows/claude-welcome.yml/badge.svg) |
+| Workflow                                           | Trigger      | Purpose                                                                                                                                                                                     | Status                                                                                          |
+| -------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| [`ci-pr-checks.yml`](./ci-pr-checks.yml)           | Pull Request | Validates installation, builds affected packages, runs linting, formatting checks, and tests                                                                                                | ![PR Checks](https://github.com/owner/repo/actions/workflows/ci-pr-checks.yml/badge.svg)        |
+| [`ci-check-pr-title.yml`](./ci-check-pr-title.yml) | Pull Request | Validates conventional PR titles; semantic validation is skipped for automated PRs (per `check-automated-pr`) and for `copilot/*` coding-agent branches, whose titles are machine-generated |                                                                                                 |
+| [`claude-docs-check.yml`](./claude-docs-check.yml) | Pull Request | Validates PR documentation updates and forwards either Claude auth method (`ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN`) to the reusable docs-check workflow                            |                                                                                                 |
+| [`claude-welcome.yml`](./claude-welcome.yml)       | PR Opened    | Posts welcome message from Claude to newly opened PRs                                                                                                                                       | ![Claude Welcome](https://github.com/owner/repo/actions/workflows/claude-welcome.yml/badge.svg) |
 
 **Key Features:**
 
@@ -22,6 +23,12 @@ Workflows that run automated checks on pull requests and commits.
   - Runs affected Nx targets only (build, lint, format, test)
   - Runs tests with coverage in parallel
   - Uses Nx's affected commands for efficiency
+
+- **claude-docs-check.yml**:
+
+  - Uses the reusable `_claude-docs-check.yml` workflow
+  - Forwards either `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN`
+  - Skips safely when neither Claude credential is configured
 
 - **claude-welcome.yml**:
   - Uses the reusable `_claude-welcome.yml` workflow
@@ -35,9 +42,9 @@ Workflows that run automated checks on pull requests and commits.
 
 Workflows that handle versioning, publishing, and production deployments.
 
-| Workflow                                                           | Trigger                  | Purpose                                                                        | Status                                                                                                        |
-| ------------------------------------------------------------------ | ------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| [`release-publish-packages.yml`](./release-publish-packages.yml)   | Push to `main` or `next` | Versions, builds, and publishes packages to NPM registry                       | ![Publish](https://github.com/owner/repo/actions/workflows/release-publish-packages.yml/badge.svg)            |
+| Workflow                                                           | Trigger                  | Purpose                                                                                                               | Status                                                                                                        |
+| ------------------------------------------------------------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| [`release-publish-packages.yml`](./release-publish-packages.yml)   | Push to `main` or `next` | Versions, builds, and publishes packages to NPM registry                                                              | ![Publish](https://github.com/owner/repo/actions/workflows/release-publish-packages.yml/badge.svg)            |
 | [`release-update-production.yml`](./release-update-production.yml) | Manual dispatch          | Creates PR to sync `next` branch changes to `main` with AI-generated changelog; skips safely if `main` does not exist | ![Update Production](https://github.com/owner/repo/actions/workflows/release-update-production.yml/badge.svg) |
 
 **Key Features:**
