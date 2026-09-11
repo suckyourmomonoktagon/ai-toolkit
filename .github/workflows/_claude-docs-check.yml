@@ -1240,6 +1240,9 @@ jobs:
               echo "❌ Documentation check failed"
               exit 1
             fi
+          elif [ "$VERDICT" = "SKIP" ]; then
+            echo "ℹ️  Documentation check skipped"
+            exit 0
           else
             echo "✅ Documentation check passed"
             exit 0
