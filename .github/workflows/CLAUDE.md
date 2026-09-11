@@ -41,7 +41,7 @@ Contains GitHub Actions workflow definitions that automate CI/CD, code quality, 
 ### Dependency Management (3 workflows)
 
 - `update-action-versions.yml` - Scheduled workflow to update GitHub Actions to latest versions
-- `update-claude-code-action.yml` - Updates the Claude Code Action SHA; requires `WORKFLOW_PAT` with workflow-file write access
+- `update-claude-code-action.yml` - Updates the Claude Code Action SHA; requires `WORKFLOW_PAT` with workflow-file write access and skips PR creation when the token is missing/blank
 - `_update-action-versions-worker.yml` - Reusable worker for analyzing and updating action versions
 
 ### Reusable Workflows (10 workflows, prefixed with `_`)
