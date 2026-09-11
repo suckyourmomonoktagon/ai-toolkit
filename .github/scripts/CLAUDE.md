@@ -119,7 +119,7 @@ Tests are co-located with source files using the `.spec.ts` extension:
 
 - **Mocking**: Uses `memfs` to mock the filesystem
 - **Test Organization**: Tests are grouped by function/feature using `describe` blocks
-- **Coverage**: Includes workflow regression checks for `copilot/*` PR-title skip behavior alongside the prompt-builder tests
+- **Coverage**: Includes workflow regression checks for `copilot/*` PR-title skip behavior (including the explicit fallback skip reason) alongside the prompt-builder tests
 
 ## Project Configuration
 

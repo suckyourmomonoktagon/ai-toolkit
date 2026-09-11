@@ -2,10 +2,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 describe('PR title workflow regression checks', () => {
-  const automatedPrActionPath = join(
-    __dirname,
-    '../actions/check-automated-pr/action.yml'
-  );
+  const automatedPrActionPath = join(__dirname, '../actions/check-automated-pr/action.yml');
   const prTitleWorkflowPath = join(__dirname, '../workflows/ci-check-pr-title.yml');
 
   it('classifies copilot branches as automated PRs', () => {
@@ -24,6 +21,9 @@ describe('PR title workflow regression checks', () => {
     );
     expect(workflow).toContain(
       "steps.check-automated.outputs.is_automated == 'true' || startsWith(github.head_ref, 'copilot/')"
+    );
+    expect(workflow).toContain(
+      'GitHub Copilot coding agent branch (copilot/* prefix); title is machine-generated from the task description'
     );
   });
 });
