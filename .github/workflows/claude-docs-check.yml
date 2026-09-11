@@ -51,11 +51,17 @@ jobs:
     # Skip bots and fork PRs (fork code is attacker-controlled)
     # workflow_dispatch fork check is handled inside _claude-docs-check.yml
     if: |
-      github.event_name == 'workflow_dispatch' ||
       (
-        github.event_name == 'pull_request' &&
-        !contains(github.event.pull_request.user.login, '[bot]') &&
-        github.event.pull_request.head.repo.full_name == github.repository
+        github.event_name == 'workflow_dispatch' ||
+        (
+          github.event_name == 'pull_request' &&
+          !contains(github.event.pull_request.user.login, '[bot]') &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        )
+      ) &&
+      (
+        secrets.ANTHROPIC_API_KEY != '' ||
+        secrets.CLAUDE_CODE_OAUTH_TOKEN != ''
       )
     permissions:
       id-token: write

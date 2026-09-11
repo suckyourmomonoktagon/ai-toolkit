@@ -21,7 +21,7 @@ Contains GitHub Actions workflow definitions that automate CI/CD, code quality, 
 
 - `claude-code.yml` - Responds to @claude mentions in issues and PRs
 - `claude-code-review.yml` - Automated PR code reviews for **this** repository, via `@uniswap/review-cli`. Does not call `_claude-code-review.yml` (see [PR Code Review for this repository](#pr-code-review-for-this-repository-claude-code-reviewyml))
-- `claude-docs-check.yml` - Validates PR documentation is properly updated (CLAUDE.md, README, versions) and forwards either Claude auth secret to `_claude-docs-check.yml`
+- `claude-docs-check.yml` - Validates PR documentation is properly updated (CLAUDE.md, README, versions), forwards either Claude auth secret to `_claude-docs-check.yml`, and skips early when neither auth secret is configured
 - `generate-pr-title-description.yml` - Auto-generates PR titles and descriptions using Claude
 
 ### PR Title Validation (1 workflow)
@@ -41,7 +41,7 @@ Contains GitHub Actions workflow definitions that automate CI/CD, code quality, 
 ### Dependency Management (3 workflows)
 
 - `update-action-versions.yml` - Scheduled workflow to update GitHub Actions to latest versions
-- `update-claude-code-action.yml` - Updates the Claude Code Action SHA; requires `WORKFLOW_PAT` with workflow-file write access
+- `update-claude-code-action.yml` - Updates the Claude Code Action SHA; requires `WORKFLOW_PAT` with workflow-file write access and skips PR creation when the token is missing/blank
 - `_update-action-versions-worker.yml` - Reusable worker for analyzing and updating action versions
 
 ### Reusable Workflows (10 workflows, prefixed with `_`)

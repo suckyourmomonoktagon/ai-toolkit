@@ -97,11 +97,12 @@ jobs:
         env:
           WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
         run: |
-          if [ -n "$WORKFLOW_PAT" ]; then
+          SANITIZED_PAT="${WORKFLOW_PAT//[[:space:]]/}"
+          if [ -n "$SANITIZED_PAT" ]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::WORKFLOW_PAT is not configured; skipping the workflow update PR."
+            echo "::warning::WORKFLOW_PAT is not configured (or is blank); skipping the workflow update PR."
           fi
       - name: Build PR description
         id: body
