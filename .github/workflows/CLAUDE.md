@@ -553,14 +553,14 @@ The step ends by asserting `git status --porcelain` is empty and warns if it is 
 
 **A second-order consequence of making that work, accepted deliberately.** review-cli's post-synthesis `verifyFindings` pass is gated on `workspaceShape == 'working-tree'`, so it was effectively dead in this repo's CI while the tree was always dirty. With the tree clean it runs, and it resolves cited files from the workspace — where `.claude` is now the pre-PR copy. On a PR that _adds_ a `.claude/**` file, a finding against that file is dropped as "file not readable at HEAD"; on one that lengthens a file, a finding past the trusted copy's EOF is dropped as "beyond file end". Both drops are logged rather than silent, and only reviewer-tuning PRs can reach them. Do not "fix" this by skipping the swap: that hands config and agent prompts back to the PR author, which is the trust inversion the swap exists to close. A real carve-out needs an upstream change.
 
-**Steps that shell out to the CLI are gated on `steps.install-review-cli.outputs.bin-path != ''`.** That output is empty whenever the install step never ran, which is exactly what happens when an earlier step fails. Without the gate, `Post` and the reaction/reply steps still execute, resolve `"$REVIEW_CLI_BIN/review-cli"` to `/review-cli`, and fail with exit 127 — replacing the real error in the log with a meaningless one.
+**Steps that shell out to the CLI are gated on `steps.install-review-cli.outputs.bin-path != ''`.** That output is empty whenever the install step never ran, or when triage continues after an install failure to skip AI review cleanly. Without the gate, `Post` and the reaction/reply steps still execute, resolve `"$REVIEW_CLI_BIN/review-cli"` to `/review-cli`, and fail with exit 127 — replacing the real error in the log with a meaningless one.
 
 **Gotcha — the `triage` gate must read `.claude/review.yml`.** review-cli's upstream workflow template runs the gate with `--skip-config` to avoid a checkout. Do not copy that here. `--skip-config` passes **no** policy, which is not the same as "the CLI's built-in defaults":
 
 - `skip.drafts` falls back to `true`, which would skip the `claude[bot]` draft PRs the autonomous-task workflow opens
 - branch and author skips are not applied at all
 
-So the `triage` job does a sparse checkout of `.github/actions` and `.claude`, and runs the gate **without** `--skip-config`. A `Verify review config is present` step fails the job if `.claude/review.yml` is missing, because `loadConfig` treats a missing file as "use defaults" and logs nothing — a botched checkout would otherwise silently stop reviewing dependency PRs, breaking auto-merge on a green run.
+So the `triage` job does a sparse checkout of `.github/actions` and `.claude`, and runs the gate **without** `--skip-config` when review-cli installs successfully. A `Verify review config is present` step fails the job if `.claude/review.yml` is missing, because `loadConfig` treats a missing file as "use defaults" and logs nothing — a botched checkout would otherwise silently stop reviewing dependency PRs, breaking auto-merge on a green run.
 
 **Configuration lives in the repo, not in workflow inputs:**
 
