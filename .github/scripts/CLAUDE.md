@@ -110,16 +110,16 @@ npx nx test github-scripts --configuration=ci
 
 Tests are co-located with source files using the `.spec.ts` extension:
 
-| File                        | Tests                                                                        |
-| --------------------------- | ---------------------------------------------------------------------------- |
-| `build-prompt.spec.ts`      | Template substitution, section ordering, overrides, conditional sections     |
-| `ci-check-pr-title.spec.ts` | Regression coverage for Copilot branch detection and PR-title workflow skips |
+| File                        | Tests                                                                                                                                          |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `build-prompt.spec.ts`      | Template substitution, section ordering, overrides, conditional sections                                                                       |
+| `ci-check-pr-title.spec.ts` | Regression coverage for Copilot branch detection and PR-title workflow skips, including `github.event.pull_request.head.ref` fallback behavior |
 
 ### Test Patterns
 
 - **Mocking**: Uses `memfs` to mock the filesystem
 - **Test Organization**: Tests are grouped by function/feature using `describe` blocks
-- **Coverage**: Includes workflow regression checks for `copilot/*` PR-title skip behavior alongside the prompt-builder tests
+- **Coverage**: Includes workflow regression checks for `copilot/*` PR-title skip behavior, including branch-ref fallback via `github.event.pull_request.head.ref || github.head_ref`, alongside the prompt-builder tests
 
 ## Project Configuration
 
