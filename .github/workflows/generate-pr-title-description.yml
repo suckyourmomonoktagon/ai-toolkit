@@ -42,7 +42,11 @@ jobs:
       !contains(github.head_ref, 'gh-readonly-queue/') &&
       !contains(github.head_ref, 'dependabot/') &&
       !contains(github.head_ref, 'release/') &&
-      !startsWith(github.event.pull_request.title, 'chore(release):')
+      !startsWith(github.event.pull_request.title, 'chore(release):') &&
+      (
+        secrets.ANTHROPIC_API_KEY != '' ||
+        secrets.CLAUDE_CODE_OAUTH_TOKEN != ''
+      )
 
     uses: ./.github/workflows/_generate-pr-metadata.yml
     with:
