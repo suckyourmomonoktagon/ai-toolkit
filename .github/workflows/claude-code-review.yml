@@ -238,7 +238,8 @@ jobs:
           REVIEW_CLI_TOKEN: ${{ secrets.REVIEW_CLI_TOKEN }}
         run: |
           if [ -z "$REVIEW_CLI_TOKEN" ]; then
-            echo "::notice::AI review skipped because REVIEW_CLI_TOKEN is not configured."
+            echo "::error::REVIEW_CLI_TOKEN is not configured. Add the secret with packages:read access to install @uniswap/review-cli."
+            exit 1
           fi
 
       - name: Install review-cli
