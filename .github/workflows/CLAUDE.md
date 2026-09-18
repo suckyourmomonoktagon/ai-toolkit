@@ -30,7 +30,7 @@ Contains GitHub Actions workflow definitions that automate CI/CD, code quality, 
 
 ### Autonomous Task Processing (3 workflows)
 
-- `claude-auto-tasks.yml` - Scheduled autonomous task processing from Linear
+- `claude-auto-tasks.yml` - Scheduled autonomous task processing from Linear; skips cleanly when `LINEAR_API_KEY` is unavailable
 - `_claude-task-prepare.yml` - Reusable workflow for querying Linear and preparing task matrix
 - `_claude-task-worker.yml` - Reusable worker for processing individual Linear tasks
 
