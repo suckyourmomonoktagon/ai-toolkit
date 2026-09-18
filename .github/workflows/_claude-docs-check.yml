@@ -294,46 +294,6 @@ jobs:
           persist-credentials: false
           fetch-depth: 50
 
-      # Download validate-claude-auth action if needed
-      - name: Ensure validate-claude-auth action exists
-        if: false
-        env:
-          TOOLKIT_REF: ${{ inputs.toolkit_ref }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ACTION_FILE=".github/actions/validate-claude-auth/action.yml"
-
-          if [ -f "$ACTION_FILE" ]; then
-            echo "Using local validate-claude-auth action"
-          else
-            echo "Downloading validate-claude-auth action from ai-toolkit@${TOOLKIT_REF}..."
-            mkdir -p .github/actions/validate-claude-auth
-
-            if ! curl -fSs --max-time 30 --max-redirs 3 \
-                      -H "Accept: application/vnd.github.v4.raw" \
-                      -H "Authorization: Bearer $GITHUB_TOKEN" \
-                      -L "https://api.github.com/repos/Uniswap/ai-toolkit/contents/.github/actions/validate-claude-auth/action.yml?ref=${TOOLKIT_REF}" \
-                      -o "$ACTION_FILE" 2>&1 | tee /tmp/curl-error.log; then
-              echo "::error::Failed to download validate-claude-auth action"
-              cat /tmp/curl-error.log
-              exit 1
-            fi
-
-            if [ ! -s "$ACTION_FILE" ] || ! grep -q "^runs:" "$ACTION_FILE"; then
-              echo "::error::Downloaded action.yml is invalid"
-              exit 1
-            fi
-
-            echo "Successfully downloaded validate-claude-auth action"
-          fi
-
-      - name: Validate Authentication
-        if: false
-        uses: ./.github/actions/validate-claude-auth
-        with:
-          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          claude-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-
       # Get PR info
       - name: Get PR Info
         id: pr-info
