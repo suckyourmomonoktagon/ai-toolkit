@@ -26,5 +26,8 @@ describe('PR title workflow regression checks', () => {
     expect(workflow).toContain(
       "steps.check-automated.outputs.is_automated == 'true' || startsWith(env.PR_HEAD_REF, 'copilot/')"
     );
+    expect(workflow).toContain(
+      'GitHub Copilot coding agent branch (copilot/* prefix); title is machine-generated from the task description'
+    );
   });
 });
