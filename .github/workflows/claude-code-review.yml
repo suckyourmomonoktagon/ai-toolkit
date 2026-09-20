@@ -241,11 +241,22 @@ jobs:
             echo "::notice::AI review skipped because REVIEW_CLI_TOKEN is not configured."
           fi
 
+      - name: Checkout trusted installer action
+        if: env.HAS_REVIEW_CLI_TOKEN == 'true'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          path: .review-tooling
+          sparse-checkout: |
+            .github/actions/install_review_cli
+          sparse-checkout-cone-mode: false
+
       - name: Install review-cli
         id: install-review-cli
         if: env.HAS_REVIEW_CLI_TOKEN == 'true'
         continue-on-error: true
-        uses: ./.github/actions/install_review_cli
+        uses: ./.review-tooling/.github/actions/install_review_cli
         with:
           # Pinned, never `@latest`, so an upstream release cannot change
           # review behavior mid-PR. Override without a commit by setting
