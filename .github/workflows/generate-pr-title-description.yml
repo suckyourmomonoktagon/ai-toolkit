@@ -32,13 +32,45 @@ permissions:
   id-token: write
 
 jobs:
+  # Reusable workflow inputs cannot be used in the caller's job-level `if:`
+  # (jobs.<id>.if has no `secrets` context), so check secret presence in its
+  # own job first. Without this, forks/repos without ANTHROPIC_API_KEY or
+  # CLAUDE_CODE_OAUTH_TOKEN configured hard-fail the whole workflow via
+  # validate-claude-auth on every PR instead of skipping gracefully.
+  check-auth:
+    runs-on: ubuntu-latest
+    outputs:
+      has_auth: ${{ steps.check.outputs.has_auth }}
+    steps:
+      - name: Security Scan
+        uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3 # v0.8.4
+        with:
+          egress-policy: block
+          enable-sudo: false
+
+      - name: Check Claude authentication secrets
+        id: check
+        env:
+          HAS_ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+          HAS_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+        run: |
+          if [ "$HAS_ANTHROPIC_KEY" = "true" ] || [ "$HAS_OAUTH_TOKEN" = "true" ]; then
+            echo "has_auth=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_auth=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping PR title/description generation: neither ANTHROPIC_API_KEY nor CLAUDE_CODE_OAUTH_TOKEN is configured for this repository."
+          fi
+
   generate-metadata:
+    needs: check-auth
     # Skip conditions:
+    # - No Claude authentication configured (see check-auth job above)
     # - Merge queue PRs (handled separately)
     # - Dependabot PRs (already have proper titles)
     # - Release PRs (have their own format)
     # - Production promotion PRs (have their own format)
     if: |
+      needs.check-auth.outputs.has_auth == 'true' &&
       !contains(github.head_ref, 'gh-readonly-queue/') &&
       !contains(github.head_ref, 'dependabot/') &&
       !contains(github.head_ref, 'release/') &&
