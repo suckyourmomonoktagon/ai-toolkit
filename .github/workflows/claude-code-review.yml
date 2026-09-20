@@ -204,9 +204,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3 # v0.8.4
 
-      # Sparse checkout of just the composite action and `.claude/`. The
-      # gate needs BOTH: the action to install the CLI, and
-      # `.claude/review.yml` for the skip policy.
+      # Sparse checkout of just `.claude/` from the event ref. The gate
+      # needs `.claude/review.yml` for the skip policy.
       #
       # Do NOT drop `.claude` and add `--skip-config` to the gate below.
       # `--skip-config` passes NO policy at all, which is not the same as
@@ -224,13 +223,22 @@ jobs:
       # a PR changing its own review eligibility, not code execution with a
       # credential. The fork guard below deliberately does not rely on
       # config — it resolves the head repo through the API instead.
-      - name: Checkout repository (config + composite action)
+      - name: Checkout repository config
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
           sparse-checkout: |
-            .github/actions
             .claude
+          sparse-checkout-cone-mode: false
+
+      - name: Checkout trusted installer action
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.repository.default_branch }}
+          path: .review-tooling
+          sparse-checkout: |
+            .github/actions/install_review_cli
           sparse-checkout-cone-mode: false
 
       - name: Check review-cli token
