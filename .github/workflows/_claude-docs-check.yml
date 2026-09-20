@@ -179,7 +179,34 @@ env:
   BUN_CONFIG_FILE: /dev/null
 
 jobs:
+  # jobs.<id>.if cannot see the secrets context, so authentication presence
+  # must be resolved inside a job (where secrets ARE available to env/steps)
+  # and passed downstream via outputs. Without this, docs-check would run
+  # unconditionally and hard-fail at "Validate Authentication" whenever a
+  # caller repo hasn't configured ANTHROPIC_API_KEY / CLAUDE_CODE_OAUTH_TOKEN,
+  # instead of skipping gracefully.
+  check-auth:
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      has_auth: ${{ steps.check.outputs.has_auth }}
+    steps:
+      - name: Check Claude authentication availability
+        id: check
+        env:
+          HAS_ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+          HAS_CLAUDE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+        run: |
+          if [ "$HAS_ANTHROPIC_API_KEY" = "true" ] || [ "$HAS_CLAUDE_OAUTH_TOKEN" = "true" ]; then
+            echo "has_auth=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::No Claude authentication configured (ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN). Skipping documentation check."
+            echo "has_auth=false" >> "$GITHUB_OUTPUT"
+          fi
+
   docs-check:
+    needs: check-auth
+    if: needs.check-auth.outputs.has_auth == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: ${{ inputs.timeout_minutes }}
     env:
