@@ -38,6 +38,7 @@ jobs:
       - name: Download release assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
           mkdir -p release-assets
@@ -48,7 +49,7 @@ jobs:
             exit 1
           fi
 
-          gh release download "${{ github.event.release.tag_name }}" \
+          gh release download "$RELEASE_TAG_NAME" \
             --repo "$GITHUB_REPOSITORY" \
             --dir release-assets
 
