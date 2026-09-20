@@ -50,7 +50,6 @@ on:
       target_branch:
         description: 'Base branch for the PR'
         required: false
-        default: 'main'
         type: string
 
 # Prevent concurrent runs
@@ -86,6 +85,7 @@ jobs:
           INPUT_DRY_RUN: ${{ github.event.inputs.dry_run }}
           INPUT_MODEL: ${{ github.event.inputs.model }}
           INPUT_TARGET_BRANCH: ${{ github.event.inputs.target_branch }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           # Use defaults for scheduled runs
           if [ -z "$INPUT_DRY_RUN" ]; then
@@ -101,7 +101,7 @@ jobs:
           fi
 
           if [ -z "$INPUT_TARGET_BRANCH" ]; then
-            echo "target_branch=main" >> $GITHUB_OUTPUT
+            echo "target_branch=$DEFAULT_BRANCH" >> $GITHUB_OUTPUT
           else
             echo "target_branch=$INPUT_TARGET_BRANCH" >> $GITHUB_OUTPUT
           fi
