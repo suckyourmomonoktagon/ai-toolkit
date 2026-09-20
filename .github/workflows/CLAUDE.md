@@ -11,47 +11,33 @@ Contains GitHub Actions workflow definitions that automate CI/CD, code quality, 
 - `ci-pr-checks.yml` - Validates PRs with build, lint, format, test, and plugin validation checks
 - `claude-welcome.yml` - Posts welcome messages from Claude to new PRs
 
-### Release & Deployment (3 workflows)
+### Release & Deployment (2 workflows)
 
 - `publish-packages.yml` - Unified package publishing workflow (automatic on push to main/next, manual via workflow_dispatch). Also detects changes to reusable workflows and syncs them to the `next` branch with Slack notifications.
-- `release-update-production.yml` - Creates production sync PRs with AI changelogs, skipping safely when the `main` branch is unavailable
-- `generator-generic-ossf-slsa3-publish.yml` - Generates SLSA Level 3 provenance for release artifacts.
+- `release-update-production.yml` - Creates production sync PRs with AI changelogs
 
 ### Code Review & PR Management (4 workflows)
 
 - `claude-code.yml` - Responds to @claude mentions in issues and PRs
 - `claude-code-review.yml` - Automated PR code reviews for **this** repository, via `@uniswap/review-cli`. Does not call `_claude-code-review.yml` (see [PR Code Review for this repository](#pr-code-review-for-this-repository-claude-code-reviewyml))
-- `claude-docs-check.yml` - Validates PR documentation is properly updated (CLAUDE.md, README, versions), forwards either Claude auth secret to `_claude-docs-check.yml`, and skips early when neither auth secret is configured
+- `claude-docs-check.yml` - Validates PR documentation is properly updated (CLAUDE.md, README, versions)
 - `generate-pr-title-description.yml` - Auto-generates PR titles and descriptions using Claude
 
 ### PR Title Validation (1 workflow)
 
 - `ci-check-pr-title.yml` - Validates PR titles follow conventional commit format
 
-### Autonomous Task Processing (3 workflows)
-
-- `claude-auto-tasks.yml` - Scheduled autonomous task processing from Linear
-- `_claude-task-prepare.yml` - Reusable workflow for querying Linear and preparing task matrix
-- `_claude-task-worker.yml` - Reusable worker for processing individual Linear tasks
-
-### Newsletter Automation (1 workflow)
-
-- `dev-ai-newsletter.yml` - Weekly Dev AI Pod newsletter generation using Claude with Notion and Slack MCPs
-
-### Dependency Management (3 workflows)
+### Dependency Management (2 workflows)
 
 - `update-action-versions.yml` - Scheduled workflow to update GitHub Actions to latest versions
-- `update-claude-code-action.yml` - Updates the Claude Code Action SHA; requires `WORKFLOW_PAT` with workflow-file write access and skips PR creation when the token is missing/blank
 - `_update-action-versions-worker.yml` - Reusable worker for analyzing and updating action versions
 
-### Reusable Workflows (10 workflows, prefixed with `_`)
+### Reusable Workflows (8 workflows, prefixed with `_`)
 
 - `_claude-main.yml` - Core Claude AI interaction engine
 - `_claude-welcome.yml` - Reusable welcome message poster
 - `_claude-code-review.yml` - Reusable PR review automation
 - `_claude-docs-check.yml` - Reusable PR documentation validator
-- `_claude-task-prepare.yml` - Linear task querying and matrix preparation
-- `_claude-task-worker.yml` - Autonomous task execution from Linear issues
 - `_generate-changelog.yml` - AI-powered changelog generation
 - `_generate-pr-metadata.yml` - AI-powered PR title and description generation
 - `_notify-release.yml` - Slack release notifications
@@ -66,8 +52,6 @@ These workflows are prefixed with `_` and may be called from other repositories:
 - `_claude-main.yml` - Claude AI assistant for GitHub interactions
 - `_claude-code-review.yml` - Formal GitHub PR reviews with inline comments
 - `_claude-docs-check.yml` - PR documentation validator with commit suggestions
-- `_claude-task-prepare.yml` - Query Linear and prepare task matrix for parallel processing
-- `_claude-task-worker.yml` - Process single Linear task autonomously
 - `_claude-welcome.yml` - Welcome messages for new contributors
 - `_generate-changelog.yml` - AI-generated release notes
 - `_generate-pr-metadata.yml` - AI-generated PR titles and descriptions
@@ -557,22 +541,21 @@ The step ends by asserting `git status --porcelain` is empty and warns if it is 
 
 **Gotcha — the `triage` gate must read `.claude/review.yml`.** review-cli's upstream workflow template runs the gate with `--skip-config` to avoid a checkout. Do not copy that here. `--skip-config` passes **no** policy, which is not the same as "the CLI's built-in defaults":
 
-- `skip.drafts` falls back to `true`, which would skip the `claude[bot]` draft PRs the autonomous-task workflow opens
+- `skip.drafts` falls back to `true`, which would skip the draft PRs `claude[bot]` opens
 - branch and author skips are not applied at all
 
 So the `triage` job does a sparse checkout of `.github/actions` and `.claude`, and runs the gate **without** `--skip-config`. A `Verify review config is present` step fails the job if `.claude/review.yml` is missing, because `loadConfig` treats a missing file as "use defaults" and logs nothing — a botched checkout would otherwise silently stop reviewing dependency PRs, breaking auto-merge on a green run.
 
 **Configuration lives in the repo, not in workflow inputs:**
 
-| File / setting                       | Controls                                                                                                                                                                                                                                                                                |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.claude/review.yml`                 | Model, per-agent budget, skip policy, investigation gate, diff summarization, triage staffing                                                                                                                                                                                           |
-| `.claude/agents/*-reviewer.md`       | Repo-specific reviewers, **added to** review-cli's bundled set (not replacing it)                                                                                                                                                                                                       |
-| `.github/actions/install_review_cli` | Installs the CLI from GitHub Packages into an isolated `$RUNNER_TEMP` dir. In the `review` job it is resolved from the trusted ref, not the PR head                                                                                                                                     |
-| `vars.REVIEW_CLI_VERSION`            | CLI version override; falls back to the pin in the workflow. Never `@latest`                                                                                                                                                                                                            |
-| `secrets.REVIEW_CLI_TOKEN`           | Optional. A token with `packages:read` access; when absent or unable to access the package, the triage job reports a notice and skips AI review successfully. The installer also treats Bun's "403 but no installed package" path as unavailable review-cli rather than a hard failure. |
-| `secrets.CLAUDE_CODE_OAUTH_TOKEN`    | **Required.** `ANTHROPIC_API_KEY` is deliberately never forwarded to the review job                                                                                                                                                                                                     |
-| `secrets.DATADOG_API_KEY`            | Optional. Enables CI Visibility stamping; the step is skipped when unset                                                                                                                                                                                                                |
+| File / setting                       | Controls                                                                                                                                            |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.claude/review.yml`                 | Model, per-agent budget, skip policy, investigation gate, diff summarization, triage staffing                                                       |
+| `.claude/agents/*-reviewer.md`       | Repo-specific reviewers, **added to** review-cli's bundled set (not replacing it)                                                                   |
+| `.github/actions/install_review_cli` | Installs the CLI from GitHub Packages into an isolated `$RUNNER_TEMP` dir. In the `review` job it is resolved from the trusted ref, not the PR head |
+| `vars.REVIEW_CLI_VERSION`            | CLI version override; falls back to the pin in the workflow. Never `@latest`                                                                        |
+| `secrets.CLAUDE_CODE_OAUTH_TOKEN`    | **Required.** `ANTHROPIC_API_KEY` is deliberately never forwarded to the review job                                                                 |
+| `secrets.DATADOG_API_KEY`            | Optional. Enables CI Visibility stamping; the step is skipped when unset                                                                            |
 
 **Repo-specific reviewers.** review-cli ships 11 bundled agents: security, correctness, patterns, dependency-upgrade, and general reviewers; contract-security and defi-risk reviewers (neither applicable here, see `triage.guidance`); stack-security-analyst and stack-synthesis for stacked PRs; plus triage and synthesis. ai-toolkit adds two:
 
@@ -613,17 +596,17 @@ This workflow validates that PR documentation is properly updated based on code 
 
 **Key Features:**
 
-| Feature                     | Description                                                                          |
-| --------------------------- | ------------------------------------------------------------------------------------ |
-| **CLAUDE.md Validation**    | Checks if CLAUDE.md files need updating when code in their scope changes             |
-| **README Validation**       | Verifies README files reflect current state                                          |
-| **Plugin Version Checking** | Ensures plugin versions are bumped when plugin code changes (critical for plugins)   |
-| **Commit Suggestions**      | Provides GitHub commit suggestions users can apply with one click                    |
-| **Fixup Branch Creation**   | For larger changes, creates a fixup branch that can be merged into the PR            |
-| **Auto-Commit Mode**        | Optionally auto-commit and push all suggestions directly to the PR branch            |
-| **Pass/Fail Verdict**       | Returns clear pass/fail status for CI integration                                    |
-| **Auto-Fix Mode**           | Optionally auto-fix documentation issues and push changes (triggers re-check)        |
-| **Dual Authentication**     | Supports both API key and OAuth token authentication; skips if neither is configured |
+| Feature                     | Description                                                                        |
+| --------------------------- | ---------------------------------------------------------------------------------- |
+| **CLAUDE.md Validation**    | Checks if CLAUDE.md files need updating when code in their scope changes           |
+| **README Validation**       | Verifies README files reflect current state                                        |
+| **Plugin Version Checking** | Ensures plugin versions are bumped when plugin code changes (critical for plugins) |
+| **Commit Suggestions**      | Provides GitHub commit suggestions users can apply with one click                  |
+| **Fixup Branch Creation**   | For larger changes, creates a fixup branch that can be merged into the PR          |
+| **Auto-Commit Mode**        | Optionally auto-commit and push all suggestions directly to the PR branch          |
+| **Pass/Fail Verdict**       | Returns clear pass/fail status for CI integration                                  |
+| **Auto-Fix Mode**           | Optionally auto-fix documentation issues and push changes (triggers re-check)      |
+| **Dual Authentication**     | Supports both API key and OAuth token authentication (OAuth takes precedence)      |
 
 **Suggestion Modes:**
 
@@ -656,7 +639,7 @@ You can authenticate with Claude using either method:
 1. **API Key (Traditional):** Set `ANTHROPIC_API_KEY` with your Anthropic API key
 2. **OAuth Token (Pro/Max Users):** Set `CLAUDE_CODE_OAUTH_TOKEN` with a token generated via `claude setup-token`
 
-If both are provided, OAuth token takes precedence. A preflight job checks for either credential; if neither is configured, the workflow reports a notice and skips validation successfully.
+If both are provided, OAuth token takes precedence. At least one authentication method must be configured.
 
 > **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
 
@@ -936,200 +919,6 @@ The workflow determines which prompt to use in this priority order:
 2. **`custom_prompt_path` input**: Path to a prompt file in the calling repository (default: `.github/prompts/generate-pr-title-description.md`)
 3. **Default prompt from ai-toolkit**: Fetched from `Uniswap/ai-toolkit` repository (public, no authentication required)
 
-If neither Claude authentication secret is configured, the workflow completes its
-authentication check and skips metadata generation without failing the PR.
-
-### Linear Task Preparation (`_claude-task-prepare.yml`)
-
-This reusable workflow queries Linear for issues matching specified criteria and outputs a matrix for parallel processing. It's designed to be called by orchestrating workflows that need to fan out to multiple Claude task workers.
-
-**Key Features:**
-
-| Feature              | Description                                                            |
-| -------------------- | ---------------------------------------------------------------------- |
-| **Label Management** | Ensures the specified label exists before querying                     |
-| **Priority Sorting** | Issues sorted by priority (Urgent > High > Normal > Low > No Priority) |
-| **Matrix Output**    | Outputs JSON matrix compatible with GitHub Actions `strategy.matrix`   |
-| **Configurable**     | Customizable team, label, max issues, and npm tag                      |
-
-**Secrets:**
-
-| Secret           | Required | Description                                                                       |
-| ---------------- | -------- | --------------------------------------------------------------------------------- |
-| `LINEAR_API_KEY` | No       | Linear API key for querying issues; without it, task preparation returns no tasks |
-
-**Configuration Inputs:**
-
-| Input                   | Required | Default | Description                                         |
-| ----------------------- | -------- | ------- | --------------------------------------------------- |
-| `linear_team`           | Yes      | -       | Linear team name to query                           |
-| `linear_label`          | Yes      | -       | Label to filter issues by                           |
-| `max_issues`            | No       | `3`     | Maximum number of issues to process                 |
-| `linear_task_utils_tag` | No       | `next`  | npm tag for `@uniswap/ai-toolkit-linear-task-utils` |
-| `target_branch`         | No       | `next`  | Branch to checkout                                  |
-
-**Outputs:**
-
-| Output                  | Description                                                  |
-| ----------------------- | ------------------------------------------------------------ |
-| `matrix_json`           | Matrix JSON for `strategy.matrix` (contains `include` array) |
-| `has_tasks`             | `'true'` if tasks found, `'false'` otherwise                 |
-| `result`                | Full query result JSON for summary/debugging                 |
-| `linear_task_utils_tag` | Resolved tag for passing to worker                           |
-
-**Usage example:**
-
-```yaml
-jobs:
-  prepare:
-    uses: ./.github/workflows/_claude-task-prepare.yml
-    with:
-      linear_team: 'Developer AI'
-      linear_label: 'claude'
-      max_issues: '5'
-    secrets:
-      LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
-
-  process-task:
-    needs: prepare
-    if: needs.prepare.outputs.has_tasks == 'true'
-    strategy:
-      fail-fast: false
-      max-parallel: 3
-      matrix: ${{ fromJson(needs.prepare.outputs.matrix_json) }}
-    uses: ./.github/workflows/_claude-task-worker.yml
-    with:
-      issue_id: ${{ matrix.issue_id }}
-      issue_identifier: ${{ matrix.issue_identifier }}
-      issue_title: ${{ matrix.issue_title }}
-      issue_description: ${{ matrix.issue_description }}
-      issue_url: ${{ matrix.issue_url }}
-      branch_name: ${{ matrix.branch_name }}
-      linear_task_utils_tag: ${{ needs.prepare.outputs.linear_task_utils_tag }}
-    secrets:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
-```
-
-### Autonomous Task Processing (`_claude-task-worker.yml`)
-
-This workflow processes Linear issues autonomously using Claude Code. It's called by `claude-auto-tasks.yml` for each task in the matrix.
-
-**Key Features:**
-
-| Feature                      | Description                                                                                              |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------- |
-| **7-Phase Workflow**         | Claude follows a structured approach: Understand → Explore → Plan → Implement → QA → Commit → Create PR  |
-| **Autonomous Execution**     | Uses `--dangerously-skip-permissions` to run without permission prompts (safe in GitHub Actions sandbox) |
-| **Turn Budget Management**   | Prompt includes explicit turn budgets per phase to prevent over-exploration and ensure PR creation       |
-| **Fallback PR Creation**     | If Claude makes commits but fails to create a PR, workflow automatically creates a fallback PR           |
-| **Debug Mode**               | Full Claude output shown by default (`debug_mode: true`) to understand reasoning                         |
-| **Configurable PR Type**     | Choose between draft or published PRs via `pr_type` input (default: "draft")                             |
-| **Task Complexity Warnings** | Warns about tasks containing keywords like "audit", "review", "investigate"                              |
-| **Incremental Commits**      | Prompt instructs Claude to commit and push after each major piece of work to preserve progress           |
-| **Linear Integration**       | Updates Linear issue status to "In Progress" when PR is created                                          |
-| **Dual Authentication**      | Supports both API key and OAuth token authentication (OAuth takes precedence)                            |
-
-**Required Secrets:**
-
-| Secret                    | Required                                      | Description                                                                                                                               |
-| ------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `ANTHROPIC_API_KEY`       | Yes (unless `CLAUDE_CODE_OAUTH_TOKEN` is set) | Anthropic API key for Claude access                                                                                                       |
-| `CLAUDE_CODE_OAUTH_TOKEN` | No (alternative to `ANTHROPIC_API_KEY`)       | Claude Code OAuth token for authentication. When provided, takes precedence over `ANTHROPIC_API_KEY`. Generate with `claude setup-token`. |
-| `LINEAR_API_KEY`          | Yes                                           | Linear API key for issue updates                                                                                                          |
-| `WORKFLOW_PAT`            | No                                            | Personal Access Token with `repo` scope for pushing branches (falls back to `GITHUB_TOKEN`)                                               |
-
-**Authentication Methods:**
-
-You can authenticate with Claude using either method:
-
-1. **API Key (Traditional):** Set `ANTHROPIC_API_KEY` with your Anthropic API key
-2. **OAuth Token (Pro/Max Users):** Set `CLAUDE_CODE_OAUTH_TOKEN` with a token generated via `claude setup-token`
-
-If both are provided, OAuth token takes precedence. At least one authentication method must be configured.
-
-> **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
-
-**Turn Budget (built into prompt):**
-
-| Phase              | Turns   | Purpose                                          |
-| ------------------ | ------- | ------------------------------------------------ |
-| Understand/Explore | 1-30    | Read CLAUDE.md, explore codebase, identify files |
-| Plan/Implement     | 31-100  | Design approach and implement the solution       |
-| QA/Fix             | 101-130 | Run checks, fix critical issues                  |
-| **Commit/PR**      | 131-150 | **RESERVED** - Must commit and create PR         |
-
-**Configuration:**
-
-| Input                     | Default         | Description                                     |
-| ------------------------- | --------------- | ----------------------------------------------- |
-| `model`                   | `claude-opus-5` | Claude model to use                             |
-| `max_turns`               | `150`           | Maximum conversation turns                      |
-| `debug_mode`              | `true`          | Show full Claude output                         |
-| `timeout_minutes`         | `60`            | Job timeout                                     |
-| `pr_type`                 | `draft`         | Type of PR to create: "draft" or "published"    |
-| `install_uniswap_plugins` | `true`          | Auto-install uniswap plugins (false to opt out) |
-
-**Validation Behavior:**
-
-The workflow validates that Claude completed the task:
-
-1. **No commits + No PR**: Job fails with "Task may be too complex, unclear, or require human judgment"
-2. **Commits + No PR**: Fallback PR is automatically created to preserve work, job succeeds with warning
-3. **Commits + PR**: Job succeeds, Linear updated to "In Progress"
-
-**Job Summary Output:**
-
-The job summary includes:
-
-- Task title and Linear issue link
-- Branch name and model used
-- PR type (draft or published)
-- Commit count
-- PR creation status (✅ Claude PR / ⚠️ Fallback PR / ❌ No PR)
-- Failure reason (if applicable)
-- Linear status update
-
-**Usage example (API Key):**
-
-```yaml
-uses: ./.github/workflows/_claude-task-worker.yml
-with:
-  issue_id: ${{ matrix.issue_id }}
-  issue_identifier: ${{ matrix.issue_identifier }}
-  issue_title: ${{ matrix.issue_title }}
-  issue_description: ${{ matrix.issue_description }}
-  issue_url: ${{ matrix.issue_url }}
-  branch_name: ${{ matrix.branch_name }}
-  target_branch: 'next'
-  model: 'claude-opus-5'
-  debug_mode: true
-  pr_type: 'draft' # or 'published' for non-draft PRs
-secrets:
-  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-  LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
-```
-
-**Usage example (OAuth Token):**
-
-```yaml
-uses: ./.github/workflows/_claude-task-worker.yml
-with:
-  issue_id: ${{ matrix.issue_id }}
-  issue_identifier: ${{ matrix.issue_identifier }}
-  issue_title: ${{ matrix.issue_title }}
-  issue_description: ${{ matrix.issue_description }}
-  issue_url: ${{ matrix.issue_url }}
-  branch_name: ${{ matrix.branch_name }}
-  target_branch: 'next'
-  model: 'claude-opus-5'
-  debug_mode: true
-  pr_type: 'draft'
-secrets:
-  CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-  LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
-```
-
 ### GitHub Actions Version Updater (`_update-action-versions-worker.yml`)
 
 This workflow uses Claude Code to automatically update GitHub Actions to their latest versions. It runs weekly and creates PRs with version updates.
@@ -1267,120 +1056,13 @@ These workflows are prefixed with two `__` and are only used within this reposit
 ### Consumer Workflows
 
 - `ci-pr-checks.yml` - Main PR validation pipeline
-- `ci-check-pr-title.yml` - PR title format validation; semantic validation is skipped for automated PRs (`check-automated-pr`) and for `copilot/*` coding-agent branches, whose titles are machine-generated from the task description rather than authored by a human contributor.
-- `claude-auto-tasks.yml` - Autonomous task processing from Linear (scheduled)
+- `ci-check-pr-title.yml` - PR title format validation
 - `claude-code.yml` - Enables @claude mentions
 - `claude-code-review.yml` - Automated code reviews via `@uniswap/review-cli`
 - `claude-welcome.yml` - New PR welcomes
-- `dev-ai-newsletter.yml` - Weekly Dev AI Pod newsletter generation (scheduled)
 - `generate-pr-title-description.yml` - Auto-generated PR titles and descriptions
 - `release-update-production.yml` - Production sync automation
 - `update-action-versions.yml` - Automated GitHub Actions version updates (scheduled)
-
-### Dev AI Newsletter (`dev-ai-newsletter.yml`)
-
-This workflow automatically generates the Dev AI Pod weekly newsletter using Claude Code with MCP servers for Notion and Slack integration.
-
-**Schedule:**
-
-- **Frequency**: Every Monday at 9:00 AM EST (14:00 UTC)
-- **Cron**: `0 14 * * 1`
-- **Coverage**: Previous 7 days (Sunday to Saturday)
-
-**How It Works:**
-
-1. Calculates the date range (previous 7 days)
-2. Refreshes Slack OAuth token inline (single-use refresh tokens are automatically rotated)
-3. Creates MCP configuration for Notion and Slack servers
-4. Claude reads the agent instructions from `.claude/agents/dev-ai-pod-weekly-newsletter.md`
-5. Queries Notion databases for reading items and use cases
-6. Queries Slack channels for engaging discussions
-7. Queries GitHub releases for tool updates
-8. Formats the newsletter following the template
-9. Creates a new page in the Notion "Dev AI Weekly Newsletters" database
-
-**Required Secrets:**
-
-| Secret                | Required | Description                                       |
-| --------------------- | -------- | ------------------------------------------------- |
-| `ANTHROPIC_API_KEY`   | Yes      | Anthropic API key for Claude Code                 |
-| `NOTION_API_KEY`      | Yes      | Notion integration token (internal integration)   |
-| `SLACK_REFRESH_TOKEN` | Yes      | Slack OAuth refresh token (xoxe-1-...)            |
-| `SLACK_REFRESH_URL`   | No       | Token refresh backend URL (has default)           |
-| `SLACK_TEAM_ID`       | Yes      | Slack workspace team ID                           |
-| `WORKFLOW_PAT`        | Yes      | GitHub PAT with `repo` scope (for token rotation) |
-
-**Slack App Requirements:**
-
-The Slack app needs these Bot Token Scopes:
-
-- `channels:history` - View messages in public channels
-- `channels:read` - View basic channel information
-- `reactions:read` - Read emoji reactions
-- `users:read` - View users and their basic information
-
-**Notion Integration Requirements:**
-
-The Notion integration needs access to:
-
-- "📚 What We're Reading" database (read)
-- "🌎 Real-World AI Use Cases" database (read)
-- "Dev AI Weekly Newsletters" database (write)
-
-**Configuration Inputs:**
-
-| Input                    | Default           | Description                                                                                       |
-| ------------------------ | ----------------- | ------------------------------------------------------------------------------------------------- |
-| `days_back`              | `7`               | Number of days to look back for content                                                           |
-| `model`                  | `claude-sonnet-5` | Claude model to use                                                                               |
-| `dry_run`                | `false`           | Generate but don't publish to Notion                                                              |
-| `debug_mode`             | `true`            | Enable full Claude output for debugging                                                           |
-| `slack_post_channel_ids` | `C091XE1DNP2`     | Comma-separated Slack channel IDs to post newsletter announcement (e.g., C091XE1DNP2,C094URH6C13) |
-
-**Manual Trigger:**
-
-```bash
-# Run with defaults (last 7 days)
-gh workflow run dev-ai-newsletter.yml
-
-# Dry run (generate but don't publish)
-gh workflow run dev-ai-newsletter.yml -f dry_run=true
-
-# Custom date range
-gh workflow run dev-ai-newsletter.yml -f days_back=14
-
-# Use Opus model for better quality
-gh workflow run dev-ai-newsletter.yml -f model=claude-opus-5
-
-# Post to specific Slack channels
-gh workflow run dev-ai-newsletter.yml -f slack_post_channel_ids="C091XE1DNP2,C094URH6C13"
-```
-
-**MCP Servers Used:**
-
-- `@notionhq/notion-mcp-server@1.9.1` - Official Notion MCP server (pinned to v1.9.1 due to breaking changes in v2.0.0)
-- `@modelcontextprotocol/server-slack` - Official Slack MCP server
-
-> **Important: MCP Server Version Pinning**
->
-> The Notion MCP server is pinned to v1.9.1 because v2.0.0 (released Dec 24, 2025) introduced breaking changes:
->
-> - Tool names changed from `notion-*` to `API-*` format
-> - Parameter format changed (e.g., `parent` must be an object, not a JSON string)
->
-> The agent instructions in `.claude/agents/dev-ai-pod-weekly-newsletter.md` are written for v1.x API. To upgrade to v2.0.0, update both the version and the agent instructions.
-
-**Artifacts:**
-
-| Artifact Name                           | Condition    | Retention | Description                              |
-| --------------------------------------- | ------------ | --------- | ---------------------------------------- |
-| `newsletter-preview-{start}-to-{end}`   | Dry run only | 30 days   | Formatted newsletter markdown for review |
-| `claude-execution-log-{start}-to-{end}` | Always       | 7 days    | Claude execution log JSON for debugging  |
-
-**Related Files:**
-
-- `.claude/agents/dev-ai-pod-weekly-newsletter.md` - Agent instructions
-- `.claude/commands/dev-ai-pod-weekly-newsletter.md` - Slash command definition
 
 ## Subdirectories
 
@@ -1459,12 +1141,8 @@ Common secrets referenced:
 - `NODE_AUTH_TOKEN` - NPM registry authentication (for publishing `@uniswap` scoped packages)
 - `WORKFLOW_PAT` - Personal Access Token with `repo` scope for: (1) pushing commits/tags in force-publish, (2) cross-repo access to fetch default prompts from ai-toolkit in `_claude-code-review.yml` and `_generate-pr-metadata.yml`, (3) resolving review threads via GraphQL API in `_claude-code-review.yml` (the default `GITHUB_TOKEN` lacks permissions for the `resolveReviewThread` mutation). **Important:** The account that owns the PAT must have write, maintain, or admin access to the repository for thread resolution to work.
 - `SERVICE_ACCOUNT_GPG_PRIVATE_KEY` - GPG key for signed commits/tags
-- `LINEAR_API_KEY` - Linear API authentication (for autonomous tasks)
 - `SLACK_WEBHOOK_URL` - Slack notifications
-- `NOTION_API_KEY` - Notion integration token (for newsletter automation)
-- `SLACK_REFRESH_TOKEN` - Slack OAuth refresh token (for newsletter automation, auto-rotated)
-- `SLACK_REFRESH_URL` - Slack token refresh backend URL (optional, has default)
-- `SLACK_TEAM_ID` - Slack workspace team ID (for newsletter automation)
+- `NOTION_API_KEY` - Notion integration token (for release-notes publishing)
 - `GITHUB_TOKEN` - Built-in token (automatic)
 
 ## Usage Patterns
@@ -1479,7 +1157,7 @@ jobs:
     uses: ./.github/workflows/_claude-main.yml
     with:
       model: 'claude-sonnet-5'
-      allowed_tools: 'read-write'
+      allowed_tools: 'Read,Write,Edit,Grep,Glob,Bash'
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -1523,8 +1201,8 @@ gh workflow run publish-packages.yml \
 
 **Note**: Force publishing only runs on the `next` branch and publishes with the `next` npm tag using prerelease versioning.
 
-- **On Schedule**: `claude-auto-tasks.yml` (daily at 5am EST), `update-action-versions.yml` (weekly on Mondays at 5am ET)
-- **Manual Dispatch**: `release-update-production.yml`, `claude-code-review.yml`, `claude-auto-tasks.yml`, `update-action-versions.yml`
+- **On Schedule**: `update-action-versions.yml` (weekly on Mondays at 5am ET)
+- **Manual Dispatch**: `release-update-production.yml`, `claude-code-review.yml`, `update-action-versions.yml`
 
 ## Architecture: Publish Workflow
 

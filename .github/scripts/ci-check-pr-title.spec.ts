@@ -23,7 +23,7 @@ describe('PR title workflow regression checks', () => {
       "steps.check-automated.outputs.is_automated == 'true' || startsWith(github.head_ref, 'copilot/')"
     );
     expect(workflow).toContain(
-      'GitHub Copilot coding agent branch (copilot/* prefix); title is machine-generated from the task description'
+      "SKIP_REASON: ${{ steps.check-automated.outputs.is_automated == 'true' && steps.check-automated.outputs.skip_reason || 'GitHub Copilot coding agent branch (copilot/* prefix); title is machine-generated from the task description' }}"
     );
   });
 });
