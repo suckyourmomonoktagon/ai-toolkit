@@ -42,11 +42,11 @@ Workflows that run automated checks on pull requests and commits.
 
 Workflows that handle versioning, publishing, and production deployments.
 
-| Workflow                                                           | Trigger                  | Purpose                                                                                                               | Status                                                                                                        |
-| ------------------------------------------------------------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| [`release-publish-packages.yml`](./release-publish-packages.yml)   | Push to `main` or `next` | Versions, builds, and publishes packages to NPM registry                                                              | ![Publish](https://github.com/owner/repo/actions/workflows/release-publish-packages.yml/badge.svg)            |
-| [`release-update-production.yml`](./release-update-production.yml) | Manual dispatch          | Creates PR to sync `next` branch changes to `main` with AI-generated changelog; skips safely if `main` does not exist | ![Update Production](https://github.com/owner/repo/actions/workflows/release-update-production.yml/badge.svg) |
-| [`generator-generic-ossf-slsa3-publish.yml`](./generator-generic-ossf-slsa3-publish.yml) | Release Created | Downloads real release assets and generates SLSA provenance for them | |
+| Workflow                                                                                 | Trigger                  | Purpose                                                                                                               | Status                                                                                                        |
+| ---------------------------------------------------------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| [`release-publish-packages.yml`](./release-publish-packages.yml)                         | Push to `main` or `next` | Versions, builds, and publishes packages to NPM registry                                                              | ![Publish](https://github.com/owner/repo/actions/workflows/release-publish-packages.yml/badge.svg)            |
+| [`release-update-production.yml`](./release-update-production.yml)                       | Manual dispatch          | Creates PR to sync `next` branch changes to `main` with AI-generated changelog; skips safely if `main` does not exist | ![Update Production](https://github.com/owner/repo/actions/workflows/release-update-production.yml/badge.svg) |
+| [`generator-generic-ossf-slsa3-publish.yml`](./generator-generic-ossf-slsa3-publish.yml) | Release Created          | Downloads real release assets and generates SLSA provenance for them                                                  |                                                                                                               |
 
 **Key Features:**
 
@@ -58,7 +58,7 @@ Workflows that handle versioning, publishing, and production deployments.
   - Sends Slack notifications
   - Syncs `next` branch with `main` after production releases
 
-- **update-production.yml**:
+- **release-update-production.yml**:
   - Creates production PRs from `next` branch
   - Generates categorized changelogs using AI
   - Uses custom prompt for professional release notes
@@ -183,7 +183,7 @@ Workflows designed to be called by other workflows using `workflow_call`. These 
    └─> Rebases next branch onto main
 ```
 
-### Production Update Flow (update-production.yml)
+### Production Update Flow (release-update-production.yml)
 
 ```
 1. create-pr job
@@ -210,14 +210,14 @@ The [Claude GitHub App](https://github.com/apps/claude) must be installed on you
 
 ### Required Secrets
 
-| Secret                             | Used By                                                                    | Purpose                                                                                                                                     |
-| ---------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `WORKFLOW_PAT`                     | publish-packages.yml, update-production.yml, update-claude-code-action.yml | Push commits/tags, create PRs (internal CI/CD only). The Claude Code Action updater skips PR creation when this secret is missing or blank. |
-| `ANTHROPIC_API_KEY`                | generate-changelog.yml                                                     | AI-powered changelog generation                                                                                                             |
-| `SLACK_WEBHOOK_URL`                | notify-release.yml, publish-packages.yml                                   | Send Slack release and error notifications                                                                                                  |
-| `NOTION_API_KEY`                   | notify-release.yml                                                         | Publish release notes to Notion (optional)                                                                                                  |
-| `RELEASE_NOTES_NOTION_DATABASE_ID` | notify-release.yml                                                         | Notion database ID for release notes (optional)                                                                                             |
-| `NODE_AUTH_TOKEN`                  | publish-packages.yml                                                       | Publish to NPM registry                                                                                                                     |
+| Secret                             | Used By                                                                            | Purpose                                                                                                                                     |
+| ---------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WORKFLOW_PAT`                     | publish-packages.yml, release-update-production.yml, update-claude-code-action.yml | Push commits/tags, create PRs (internal CI/CD only). The Claude Code Action updater skips PR creation when this secret is missing or blank. |
+| `ANTHROPIC_API_KEY`                | generate-changelog.yml                                                             | AI-powered changelog generation                                                                                                             |
+| `SLACK_WEBHOOK_URL`                | notify-release.yml, publish-packages.yml                                           | Send Slack release and error notifications                                                                                                  |
+| `NOTION_API_KEY`                   | notify-release.yml                                                                 | Publish release notes to Notion (optional)                                                                                                  |
+| `RELEASE_NOTES_NOTION_DATABASE_ID` | notify-release.yml                                                                 | Notion database ID for release notes (optional)                                                                                             |
+| `NODE_AUTH_TOKEN`                  | publish-packages.yml                                                               | Publish to NPM registry                                                                                                                     |
 
 > **Note:** External consumers of the reusable workflows (e.g., `_claude-code-review.yml`, `_generate-pr-metadata.yml`) do **not** need `WORKFLOW_PAT`. The ai-toolkit repository is public, so fetching default prompts requires no authentication.
 
@@ -241,7 +241,7 @@ jobs:
 ### Triggering Manual Workflows
 
 ```bash
-# Trigger update-production workflow
+# Trigger release-update-production workflow
 gh workflow run release-update-production.yml
 
 # Trigger publish-packages in dry-run mode
