@@ -28,6 +28,9 @@ describe('PR title workflow regression checks', () => {
 
     expect(workflow).toContain('workflow_run:');
     expect(workflow).toContain('"Claude: Generate PR Title & Description"');
+    expect(workflow).toContain("github.event_name == 'workflow_run' &&");
+    expect(workflow).toContain("github.event.workflow_run.conclusion == 'success' &&");
+    expect(workflow).toContain("github.event.workflow_run.event == 'pull_request'");
     expect(workflow).toContain('Load PR metadata');
     expect(workflow).toContain('GITHUB_EVENT_NAME: pull_request_target');
   });

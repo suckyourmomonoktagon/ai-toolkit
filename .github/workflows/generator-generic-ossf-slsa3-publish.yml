@@ -23,7 +23,7 @@ jobs:
     permissions:
       contents: read
     outputs:
-      digests: ${{ steps.hash.outputs.digests }}
+      hashes: ${{ steps.hash.outputs.hashes }}
 
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -64,9 +64,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          # List the artifacts the provenance will refer to without
-          # collapsing whitespace in filenames.
-          echo "digests=$(find release-assets -type f -print0 | sort -z | xargs -0 sha256sum | base64 -w0)" >> "${GITHUB_OUTPUT}"
+          mapfile -d '' files < <(find release-assets -type f -print0 | sort -z)
+          for file in "${files[@]}"; do
+            if [[ "$file" == *$'\n'* ]]; then
+              echo "::error::Release asset path contains a newline, which cannot be represented safely in sha256sum provenance subjects: $file"
+              exit 1
+            fi
+          done
+
+          echo "hashes=$(sha256sum "${files[@]}" | base64 -w0)" >> "${GITHUB_OUTPUT}"
 
   provenance:
     needs: [build]
@@ -76,5 +82,5 @@ jobs:
       contents: write # To add assets to a release.
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@68bad40844440577b33778c9f29077a3388838e9 # v1.4.0
     with:
-      base64-subjects: "${{ needs.build.outputs.digests }}"
+      base64-subjects: "${{ needs.build.outputs.hashes }}"
       upload-assets: true # Optional: Upload to a new release
