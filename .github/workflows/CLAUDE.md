@@ -546,6 +546,8 @@ The step ends by asserting `git status --porcelain` is empty and warns if it is 
 
 So the `triage` job does a sparse checkout of `.github/actions` and `.claude`, and runs the gate **without** `--skip-config`. A `Verify review config is present` step fails the job if `.claude/review.yml` is missing, because `loadConfig` treats a missing file as "use defaults" and logs nothing — a botched checkout would otherwise silently stop reviewing dependency PRs, breaking auto-merge on a green run.
 
+**Gotcha — triage treats `review-cli` install failures as a skip, not a hard failure.** This repository depends on a private `@uniswap/review-cli` package from GitHub Packages. Forks and personal copies of the repo often have a `GITHUB_TOKEN` that can run the workflow but cannot read that package, which surfaces as a 403 during the install step. The triage job therefore marks the install step `continue-on-error`, emits a notice explaining that AI review was skipped because the package was unavailable, and gates both config validation and `review-cli triage` itself on `steps.install-review-cli.outcome == 'success'`. That keeps the workflow green while still leaving an explicit audit trail in the run log.
+
 **Configuration lives in the repo, not in workflow inputs:**
 
 | File / setting                       | Controls                                                                                                                                            |
