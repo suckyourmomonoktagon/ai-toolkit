@@ -433,8 +433,7 @@ jobs:
     needs: triage
     if: |
       needs.triage.outputs.run == 'true' &&
-      needs.triage.outputs.is_fork != 'true' &&
-      needs.triage.outputs.review_cli_available == 'true'
+      needs.triage.outputs.is_fork != 'true'
     runs-on: ubuntu-latest
     permissions:
       # `contents: write` (not read) is required for the GraphQL
