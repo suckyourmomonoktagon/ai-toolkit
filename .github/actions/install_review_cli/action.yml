@@ -81,7 +81,7 @@ runs:
         bun_add_status=${PIPESTATUS[0]}
         set -e
         if [ "$bun_add_status" -ne 0 ]; then
-          if grep -Eqi '((npm\\.pkg\\.github\\.com|@uniswap(/|%2f)review-cli).*(\\b401\\b|\\b403\\b)|(\\b401\\b|\\b403\\b).*(npm\\.pkg\\.github\\.com|@uniswap(/|%2f)review-cli))' "$install_log"; then
+          if grep -Eqi '((npm\.pkg\.github\.com|@uniswap(/|%2f)review-cli).*(\b401\b|\b403\b)|(\b401\b|\b403\b).*(npm\.pkg\.github\.com|@uniswap(/|%2f)review-cli))' "$install_log"; then
             echo "::warning::Skipping AI review: unable to download @uniswap/review-cli from GitHub Packages with the provided token (401/403)."
             echo "bin-path=" >> "$GITHUB_OUTPUT"
             exit 0
