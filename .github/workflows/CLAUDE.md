@@ -89,10 +89,10 @@ This workflow enables Claude to respond to @claude mentions in issues, PRs, comm
 
 **Required Secrets:**
 
-| Secret                    | Required                                      | Description                                                                                                                               |
-| ------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `ANTHROPIC_API_KEY`       | No (one authentication method enables the check) | Anthropic API key for Claude access                                                                                                      |
-| `CLAUDE_CODE_OAUTH_TOKEN` | No (alternative to `ANTHROPIC_API_KEY`)       | Claude Code OAuth token for authentication. When provided, takes precedence over `ANTHROPIC_API_KEY`. Generate with `claude setup-token`. |
+| Secret                    | Required                                         | Description                                                                                                                               |
+| ------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY`       | No (one authentication method enables the check) | Anthropic API key for Claude access                                                                                                       |
+| `CLAUDE_CODE_OAUTH_TOKEN` | No (alternative to `ANTHROPIC_API_KEY`)          | Claude Code OAuth token for authentication. When provided, takes precedence over `ANTHROPIC_API_KEY`. Generate with `claude setup-token`. |
 
 **Authentication Methods:**
 
@@ -587,6 +587,8 @@ So the `triage` job does a sparse checkout of `.github/actions` and `.claude`, a
 Do **not** "fix" this by widening `Post` to `always()`. Cancellation is also how the `concurrency` group stops a superseded run, and an `always()` Post would let that dying run overwrite the sticky its successor is mid-way through writing.
 
 **Why `install_review_cli` needs an isolated directory:** the repo's `bunfig.toml` pins the whole `@uniswap` scope to `registry.npmjs.org`, but `@uniswap/review-cli` is private on GitHub Packages, and bun only supports per-_scope_ registry overrides. The same file also enforces a 3-day `minimumReleaseAge` as a supply-chain control. That age gate applies to exact version requests too, so a review-cli version published less than 3 days ago is uninstallable until it ages in (bun errors rather than downgrading; an exact pin bypasses the stability-check fallback). Installing from a scratch dir with its own `bunfig.toml` sidesteps both without touching the repo's copy.
+
+**Bullfrog allowlist requirement for review-cli:** any job that runs `install_review_cli` must allow egress to `release-assets.githubusercontent.com` (setup-bun), `registry.npmjs.org` (review-cli transitive deps), and `npm.pkg.github.com` (the private `@uniswap/review-cli` package). Missing any of the three hard-fails the install before triage or review can start.
 
 **Behavior preserved from the previous implementation:**
 
