@@ -613,6 +613,8 @@ This workflow validates that PR documentation is properly updated based on code 
 | **Auto-Fix Mode**           | Optionally auto-fix documentation issues and push changes (triggers re-check)      |
 | **Dual Authentication**     | Supports both API key and OAuth token authentication (OAuth takes precedence)      |
 
+The top-level caller workflow (`claude-docs-check.yml`) now runs a `check-authentication` preflight job and only invokes this reusable workflow when either `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` is present. This prevents missing-auth configuration from surfacing as a failing CI job.
+
 **Suggestion Modes:**
 
 | Mode      | Description                                                                              |

@@ -61,10 +61,11 @@ jobs:
         run: |
           echo "has_auth=${HAS_CLAUDE_AUTH}" >> "$GITHUB_OUTPUT"
           if [ "$HAS_CLAUDE_AUTH" != "true" ]; then
-            echo "::notice::Skipping docs check: neither ANTHROPIC_API_KEY nor CLAUDE_CODE_OAUTH_TOKEN is configured for this repository."
+            echo "::notice::Skipping docs check: neither ANTHROPIC_API_KEY nor CLAUDE_CODE_OAUTH_TOKEN is configured."
           fi
 
   docs-check:
+    needs: check-authentication
     # Skip bots and fork PRs (fork code is attacker-controlled)
     # workflow_dispatch fork check is handled inside _claude-docs-check.yml
     if: |
@@ -77,7 +78,6 @@ jobs:
           github.event.pull_request.head.repo.full_name == github.repository
         )
       )
-    needs: check-authentication
     permissions:
       id-token: write
       contents: write
