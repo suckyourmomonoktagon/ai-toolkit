@@ -233,6 +233,7 @@ jobs:
 
       - name: Install review-cli
         id: install-review-cli
+        continue-on-error: true
         uses: ./.github/actions/install_review_cli
         with:
           # Pinned, never `@latest`, so an upstream release cannot change
@@ -243,12 +244,22 @@ jobs:
           version: ${{ vars.REVIEW_CLI_VERSION || '1.10.6' }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      # Forks and personal copies of this repository do not necessarily have
+      # permission to read the private GitHub Packages release of
+      # @uniswap/review-cli. That is a feature gap, not a correctness error in
+      # the PR being reviewed, so skip the AI review cleanly with an explicit
+      # notice instead of failing the whole workflow.
+      - name: Note review-cli install skip
+        if: steps.install-review-cli.outcome != 'success'
+        run: echo "::notice::Skipping AI review because review-cli could not be installed from GitHub Packages. This usually means the current GITHUB_TOKEN cannot read the private @uniswap/review-cli package."
+
       # `loadConfig` treats a missing or invalid .claude/review.yml as
       # "use defaults" and says nothing. Those defaults skip dependabot,
       # every *[bot] author, and drafts — so a botched sparse checkout
       # would silently stop reviewing dependency PRs (breaking
       # auto-merge) with a green run and no signal. Fail loudly instead.
       - name: Verify review config is present
+        if: steps.install-review-cli.outcome == 'success'
         run: |
           set -euo pipefail
           if [ ! -s .claude/review.yml ]; then
@@ -272,6 +283,7 @@ jobs:
 
       - name: Decide whether to run
         id: gate
+        if: steps.install-review-cli.outcome == 'success'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REVIEW_CLI_BIN: ${{ steps.install-review-cli.outputs.bin-path }}
@@ -283,7 +295,7 @@ jobs:
       # so it is the one that must not look like a silent no-op. Mirrors what
       # `review-skipped` does for the check-automated path.
       - name: Note that the gate declined
-        if: steps.gate.outputs.run != 'true'
+        if: steps.install-review-cli.outcome == 'success' && steps.gate.outputs.run != 'true'
         run: echo "::notice::AI review skipped by review-cli triage. See the \"Decide whether to run\" step log for the policy that matched, and .claude/review.yml for the skip block."
 
       # Fork guard. The review job checks out PR head code and runs an
