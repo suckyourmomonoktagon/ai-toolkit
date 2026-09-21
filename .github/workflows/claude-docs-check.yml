@@ -47,10 +47,45 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-authentication:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      has_auth: ${{ steps.check.outputs.has_auth }}
+    steps:
+      - name: Security Scan
+        uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3 # v0.8.4
+        with:
+          egress-policy: block
+          allowed-domains: |
+            release-assets.githubusercontent.com
+            raw.githubusercontent.com
+            api.anthropic.com
+            claude.ai
+            downloads.claude.ai
+            registry.npmjs.org
+          enable-sudo: false
+
+      - name: Check authentication availability
+        id: check
+        env:
+          API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -n "$API_KEY" ] || [ -n "$OAUTH_TOKEN" ]; then
+            echo "has_auth=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_auth=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping Claude Docs Check because no Claude authentication is configured."
+          fi
+
   docs-check:
+    needs: check-authentication
     # Skip bots and fork PRs (fork code is attacker-controlled)
     # workflow_dispatch fork check is handled inside _claude-docs-check.yml
     if: |
+      needs.check-authentication.outputs.has_auth == 'true' &&
       (
         github.event_name == 'workflow_dispatch' ||
         (
@@ -58,10 +93,6 @@ jobs:
           !contains(github.event.pull_request.user.login, '[bot]') &&
           github.event.pull_request.head.repo.full_name == github.repository
         )
-      ) &&
-      (
-        secrets.ANTHROPIC_API_KEY != '' ||
-        secrets.CLAUDE_CODE_OAUTH_TOKEN != ''
       )
     permissions:
       id-token: write
