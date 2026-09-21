@@ -20,7 +20,7 @@ Contains GitHub Actions workflow definitions that automate CI/CD, code quality, 
 
 - `claude-code.yml` - Responds to @claude mentions in issues and PRs
 - `claude-code-review.yml` - Automated PR code reviews for **this** repository, via `@uniswap/review-cli`. Does not call `_claude-code-review.yml` (see [PR Code Review for this repository](#pr-code-review-for-this-repository-claude-code-reviewyml))
-- `claude-docs-check.yml` - Validates PR documentation is properly updated (CLAUDE.md, README, versions)
+- `claude-docs-check.yml` - Validates PR documentation is properly updated (CLAUDE.md, README, versions) and skips cleanly when Claude credentials are not configured
 - `generate-pr-title-description.yml` - Auto-generates PR titles and descriptions using Claude
 
 ### PR Title Validation (1 workflow)
@@ -88,6 +88,8 @@ You can authenticate with Claude using either method:
 2. **OAuth Token (Pro/Max Users):** Set `CLAUDE_CODE_OAUTH_TOKEN` with a token generated via `claude setup-token`
 
 If both are provided, OAuth token takes precedence. At least one authentication method must be configured.
+
+For this repository's top-level `claude-docs-check.yml` consumer workflow, a lightweight pre-check runs first and skips the reusable docs validator with a notice when neither credential is configured, instead of hard-failing inside `validate-claude-auth`.
 
 > **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
 
