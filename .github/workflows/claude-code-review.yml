@@ -188,18 +188,19 @@ jobs:
     env:
       HAS_REVIEW_CLI_TOKEN: ${{ secrets.REVIEW_CLI_TOKEN != '' }}
     outputs:
-      run: ${{ steps.gate.outputs.run }}
-      pr_number: ${{ steps.gate.outputs.pr_number }}
-      comment_id: ${{ steps.gate.outputs.comment_id }}
-      trigger_source: ${{ steps.gate.outputs.trigger_source }}
-      note: ${{ steps.gate.outputs.note }}
-      commenter: ${{ steps.gate.outputs.commenter }}
-      thread_anchor: ${{ steps.gate.outputs.thread_anchor }}
-      is_fork: ${{ steps.fork_check.outputs.is_fork }}
+      run: ${{ steps.gate.outputs.run || 'false' }}
+      pr_number: ${{ steps.gate.outputs.pr_number || github.event.pull_request.number || github.event.issue.number || inputs.pr_number || '' }}
+      comment_id: ${{ steps.gate.outputs.comment_id || '' }}
+      trigger_source: ${{ steps.gate.outputs.trigger_source || '' }}
+      note: ${{ steps.gate.outputs.note || '' }}
+      commenter: ${{ steps.gate.outputs.commenter || '' }}
+      thread_anchor: ${{ steps.gate.outputs.thread_anchor || '' }}
+      is_fork: ${{ steps.fork_check.outputs.is_fork || 'false' }}
+      review_cli_available: ${{ steps.install-review-cli.outcome == 'success' }}
       # Set only when a running-state reply was posted in this job. The
       # review job PATCHes this reply with the terminal verdict. Empty for
       # push-driven runs, which have no comment to reply to.
-      reply_id: ${{ steps.post_reply.outputs.id }}
+      reply_id: ${{ steps.post_reply.outputs.id || '' }}
     steps:
       - uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3 # v0.8.4
 
@@ -392,7 +393,10 @@ jobs:
   review:
     name: AI review
     needs: triage
-    if: needs.triage.outputs.run == 'true' && needs.triage.outputs.is_fork != 'true'
+    if: |
+      needs.triage.outputs.run == 'true' &&
+      needs.triage.outputs.is_fork != 'true' &&
+      needs.triage.outputs.review_cli_available == 'true'
     runs-on: ubuntu-latest
     permissions:
       # `contents: write` (not read) is required for the GraphQL
