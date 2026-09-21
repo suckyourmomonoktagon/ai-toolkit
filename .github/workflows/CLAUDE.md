@@ -871,11 +871,15 @@ If both are provided, OAuth token takes precedence. At least one authentication 
 > **Required permissions:** The caller workflow must include `id-token: write` permission (needed by Claude Code Action for ID token creation):
 >
 > ```yaml
-> permissions:
->   contents: read
->   pull-requests: write
->   id-token: write
+> jobs:
+>   generate-metadata:
+>     permissions:
+>       contents: read
+>       pull-requests: write
+>       id-token: write
 > ```
+>
+> If the caller has helper jobs that do not need elevated permissions, grant these on the specific reusable-workflow calling job instead of at the workflow root.
 
 **Usage example (API Key):**
 
