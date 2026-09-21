@@ -201,6 +201,18 @@ jobs:
       reply_id: ${{ steps.post_reply.outputs.id }}
     steps:
       - uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3 # v0.8.4
+        with:
+          egress-policy: block
+          # Block-mode CI revealed the three outbound hosts needed before the
+          # triage gate can run: setup-bun downloads from
+          # release-assets.githubusercontent.com, bun resolves transitive deps
+          # from registry.npmjs.org, and the private @uniswap/review-cli
+          # package itself comes from GitHub Packages.
+          allowed-domains: |
+            release-assets.githubusercontent.com
+            registry.npmjs.org
+            npm.pkg.github.com
+          enable-sudo: false
 
       # Sparse checkout of just the composite action and `.claude/`. The
       # gate needs BOTH: the action to install the CLI, and
@@ -409,6 +421,20 @@ jobs:
       HAS_DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY != '' }}
     steps:
       - uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3 # v0.8.4
+        with:
+          egress-policy: block
+          # Per-workflow tightened allowlist. The review job needs the same
+          # setup-bun / registry / GitHub Packages egress as triage, plus the
+          # trusted-config fetch and Claude install/runtime endpoints.
+          allowed-domains: |
+            release-assets.githubusercontent.com
+            raw.githubusercontent.com
+            api.anthropic.com
+            claude.ai
+            downloads.claude.ai
+            registry.npmjs.org
+            npm.pkg.github.com
+          enable-sudo: false
 
       # Pin the checkout to the PR head. issue_comment and
       # workflow_dispatch events default GITHUB_REF to the default
