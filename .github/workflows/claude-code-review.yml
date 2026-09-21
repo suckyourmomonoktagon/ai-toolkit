@@ -458,6 +458,7 @@ jobs:
       # job-level env is, so this exposes "is Datadog configured?" to the
       # optional telemetry step below.
       HAS_DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY != '' }}
+      HAS_REVIEW_CLI_TOKEN: ${{ secrets.REVIEW_CLI_TOKEN != '' }}
     steps:
       - uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3 # v0.8.4
 
@@ -602,6 +603,12 @@ jobs:
             echo "::warning::working tree is not clean; review-cli will extract diff-only files and agents will lose whole-repo reads"
             git status --porcelain
           fi
+
+      - name: Verify review-cli token present
+        if: env.HAS_REVIEW_CLI_TOKEN != 'true'
+        run: |
+          echo "::error::Set REVIEW_CLI_TOKEN as a repo secret with access to the private @uniswap/review-cli GitHub Package."
+          exit 1
 
       - name: Install review-cli
         id: install-review-cli
