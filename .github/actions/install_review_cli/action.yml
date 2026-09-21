@@ -77,6 +77,12 @@ runs:
         bun init -y > /dev/null
         bun add "@uniswap/review-cli@${REVIEW_CLI_VERSION}"
 
+        bun_bin="$(command -v bun)"
+        if [ -z "$bun_bin" ]; then
+          echo "::error::setup-bun completed but no bun executable is available on PATH"
+          exit 1
+        fi
+
         shim_path="$install_dir/node_modules/.bin/review-cli"
 
         # Bun occasionally installs the package without linking its `.bin`
@@ -118,7 +124,7 @@ runs:
           mkdir -p "$(dirname "$shim_path")"
           cat > "$shim_path" <<EOF
         #!/usr/bin/env bash
-        exec bun "$bin_target" "\$@"
+        exec "$bun_bin" "$bin_target" "\$@"
         EOF
           chmod +x "$shim_path"
           echo "::notice::Created $shim_path from @uniswap/review-cli package metadata because bun did not link the review-cli shim."
