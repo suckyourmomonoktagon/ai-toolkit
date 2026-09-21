@@ -2,10 +2,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 describe('PR title workflow regression checks', () => {
-  const automatedPrActionPath = join(
-    __dirname,
-    '../actions/check-automated-pr/action.yml'
-  );
+  const automatedPrActionPath = join(__dirname, '../actions/check-automated-pr/action.yml');
   const prTitleWorkflowPath = join(__dirname, '../workflows/ci-check-pr-title.yml');
 
   it('classifies copilot branches as automated PRs', () => {
@@ -20,10 +17,14 @@ describe('PR title workflow regression checks', () => {
     const workflow = readFileSync(prTitleWorkflowPath, 'utf-8');
 
     expect(workflow).toContain(
-      "steps.check-automated.outputs.is_automated != 'true' && !startsWith(github.head_ref, 'copilot/')"
+      'PR_HEAD_REF: ${{ github.head_ref || github.event.pull_request.head.ref }}'
+    );
+    expect(workflow).toContain('branch_name: ${{ env.PR_HEAD_REF }}');
+    expect(workflow).toContain(
+      "steps.check-automated.outputs.is_automated != 'true' && !startsWith(env.PR_HEAD_REF, 'copilot/')"
     );
     expect(workflow).toContain(
-      "steps.check-automated.outputs.is_automated == 'true' || startsWith(github.head_ref, 'copilot/')"
+      "steps.check-automated.outputs.is_automated == 'true' || startsWith(env.PR_HEAD_REF, 'copilot/')"
     );
   });
 });

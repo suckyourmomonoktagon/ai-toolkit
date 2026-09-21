@@ -20,6 +20,8 @@ jobs:
   check-pr-title:
     name: 🔡 Check PR Title
     runs-on: ubuntu-latest
+    env:
+      PR_HEAD_REF: ${{ github.head_ref || github.event.pull_request.head.ref }}
     steps:
       - uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3
         with:
@@ -47,11 +49,11 @@ jobs:
         id: check-automated
         uses: ./.github/actions/check-automated-pr
         with:
-          branch_name: ${{ github.head_ref }}
+          branch_name: ${{ env.PR_HEAD_REF }}
           pr_title: ${{ github.event.pull_request.title }}
 
       - name: Conditional semantic PR check
-        if: ${{ github.event_name == 'pull_request_target' && steps.check-automated.outputs.is_automated != 'true' && !startsWith(github.head_ref, 'copilot/') }}
+        if: ${{ github.event_name == 'pull_request_target' && steps.check-automated.outputs.is_automated != 'true' && !startsWith(env.PR_HEAD_REF, 'copilot/') }}
         uses: amannn/action-semantic-pull-request@536f681e2c60d973396eb60457d42ced8cd3f61a
         with:
           requireScope: true
@@ -59,7 +61,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pass check for automated PRs
-        if: ${{ steps.check-automated.outputs.is_automated == 'true' || startsWith(github.head_ref, 'copilot/') }}
+        if: ${{ steps.check-automated.outputs.is_automated == 'true' || startsWith(env.PR_HEAD_REF, 'copilot/') }}
         env:
           SKIP_REASON: ${{ steps.check-automated.outputs.is_automated == 'true' && steps.check-automated.outputs.skip_reason || 'GitHub Copilot coding agent branch (copilot/* prefix); title is machine-generated from the task description' }}
         run: |
