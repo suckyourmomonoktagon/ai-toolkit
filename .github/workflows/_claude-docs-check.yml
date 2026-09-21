@@ -155,20 +155,20 @@ on:
 
     outputs:
       verdict:
-        description: "PASS or FAIL"
-        value: ${{ jobs.docs-check.outputs.verdict }}
+        description: "PASS, FAIL, or SKIP"
+        value: ${{ jobs.docs-check.outputs.verdict || (jobs.check-authentication.outputs.has_auth == 'false' && 'SKIP') || '' }}
       suggestion_count:
         description: "Number of suggestions made"
-        value: ${{ jobs.docs-check.outputs.suggestion_count }}
+        value: ${{ jobs.docs-check.outputs.suggestion_count || '0' }}
       branch_name:
         description: "Name of fixup branch if created"
-        value: ${{ jobs.docs-check.outputs.branch_name }}
+        value: ${{ jobs.docs-check.outputs.branch_name || '' }}
       branch_url:
         description: "URL to fixup branch if created"
-        value: ${{ jobs.docs-check.outputs.branch_url }}
+        value: ${{ jobs.docs-check.outputs.branch_url || '' }}
       commits_pushed:
         description: "Number of commits pushed when auto_commit is enabled"
-        value: ${{ jobs.docs-check.outputs.commits_pushed }}
+        value: ${{ jobs.docs-check.outputs.commits_pushed || '0' }}
 
 # Disable Bun's automatic bunfig.toml loading from CWD. When a workflow
 # checks out PR head content (this workflow checks out PR refs to read
