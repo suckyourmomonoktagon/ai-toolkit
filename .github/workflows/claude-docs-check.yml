@@ -54,6 +54,20 @@ jobs:
     outputs:
       has_auth: ${{ steps.check.outputs.has_auth }}
     steps:
+      # Security scanning — must be the first step in every non-macOS job.
+      - name: Security Scan
+        uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3 # v0.8.4
+        with:
+          egress-policy: block
+          allowed-domains: |
+            release-assets.githubusercontent.com
+            raw.githubusercontent.com
+            api.anthropic.com
+            claude.ai
+            downloads.claude.ai
+            registry.npmjs.org
+          enable-sudo: false
+
       - name: Check authentication availability
         id: check
         env:
