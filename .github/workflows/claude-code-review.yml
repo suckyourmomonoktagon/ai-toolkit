@@ -403,11 +403,14 @@ jobs:
           GATE_THREAD_ANCHOR: ${{ steps.gate.outputs.thread_anchor }}
           FORK_IS_FORK: ${{ steps.fork_check.outputs.is_fork }}
           POST_REPLY_ID: ${{ steps.post_reply.outputs.id }}
+          HAS_REVIEW_CLI_TOKEN: ${{ env.HAS_REVIEW_CLI_TOKEN }}
           INSTALL_OUTCOME: ${{ steps.install-review-cli.outcome }}
           FALLBACK_PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number || inputs.pr_number || '' }}
         run: |
           set -euo pipefail
-          if [ "$INSTALL_OUTCOME" = "success" ]; then
+          if [ "$HAS_REVIEW_CLI_TOKEN" != "true" ]; then
+            REVIEW_CLI_AVAILABLE=false
+          elif [ "$INSTALL_OUTCOME" = "success" ]; then
             REVIEW_CLI_AVAILABLE=true
           else
             REVIEW_CLI_AVAILABLE=false
