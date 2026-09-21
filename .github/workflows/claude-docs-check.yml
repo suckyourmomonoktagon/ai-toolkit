@@ -47,15 +47,42 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Cheap gate: neither ANTHROPIC_API_KEY nor CLAUDE_CODE_OAUTH_TOKEN is
+  # guaranteed to be configured. `_claude-docs-check.yml` validates auth
+  # internally and hard-fails when both are absent, so check here first and
+  # skip the reusable workflow entirely rather than surfacing a red X for a
+  # missing-config condition. `secrets.*` is not available in `jobs.<id>.if`,
+  # but it is available in job-level `env:`.
+  check-auth:
+    runs-on: ubuntu-latest
+    env:
+      HAS_CLAUDE_AUTH: ${{ secrets.ANTHROPIC_API_KEY != '' || secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+    outputs:
+      has_auth: ${{ steps.check.outputs.has_auth }}
+    steps:
+      - uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3 # v0.8.4
+
+      - name: Check Claude authentication
+        id: check
+        run: |
+          echo "has_auth=${HAS_CLAUDE_AUTH}" >> "$GITHUB_OUTPUT"
+          if [ "$HAS_CLAUDE_AUTH" != "true" ]; then
+            echo "::notice::Skipping docs check: neither ANTHROPIC_API_KEY nor CLAUDE_CODE_OAUTH_TOKEN is configured for this repository."
+          fi
+
   docs-check:
+    needs: check-auth
     # Skip bots and fork PRs (fork code is attacker-controlled)
     # workflow_dispatch fork check is handled inside _claude-docs-check.yml
     if: |
-      github.event_name == 'workflow_dispatch' ||
+      needs.check-auth.outputs.has_auth == 'true' &&
       (
-        github.event_name == 'pull_request' &&
-        !contains(github.event.pull_request.user.login, '[bot]') &&
-        github.event.pull_request.head.repo.full_name == github.repository
+        github.event_name == 'workflow_dispatch' ||
+        (
+          github.event_name == 'pull_request' &&
+          !contains(github.event.pull_request.user.login, '[bot]') &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        )
       )
     permissions:
       id-token: write
@@ -88,7 +115,7 @@ jobs:
       # changes; pinning to 'main' avoids that.
       toolkit_ref: 'main'
     secrets:
-      # Use OAuth token (Pro/Max) instead of API key
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       # PAT for branch creation
       WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
