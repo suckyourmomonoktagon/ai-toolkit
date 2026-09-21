@@ -65,6 +65,11 @@ jobs:
           set -euo pipefail
 
           mapfile -d '' files < <(find release-assets -type f -print0 | sort -z)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::Release assets were listed, but no downloadable files were found in release-assets."
+            exit 1
+          fi
+
           for file in "${files[@]}"; do
             if [[ "$file" == *$'\n'* ]]; then
               echo "::error::Release asset path contains a newline, which cannot be represented safely in sha256sum provenance subjects: $file"
