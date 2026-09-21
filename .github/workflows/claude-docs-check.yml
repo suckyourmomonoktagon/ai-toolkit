@@ -49,8 +49,6 @@ concurrency:
 jobs:
   check-authentication:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     outputs:
       has_auth: ${{ steps.check.outputs.has_auth }}
     steps:
