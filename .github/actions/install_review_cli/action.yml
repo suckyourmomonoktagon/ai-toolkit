@@ -115,7 +115,21 @@ runs:
             exit 1
           fi
 
-          bin_target="$package_dir/$bin_rel_path"
+          if ! bin_target="$(python3 - "$package_dir" "$bin_rel_path" <<'PY'
+        import os
+        import sys
+
+        package_dir = os.path.realpath(sys.argv[1])
+        bin_target = os.path.realpath(os.path.join(package_dir, sys.argv[2]))
+        if os.path.commonpath([package_dir, bin_target]) != package_dir:
+            raise SystemExit(1)
+        print(bin_target)
+        PY
+          )"; then
+            echo "::error::bun add succeeded but @uniswap/review-cli bin target $bin_rel_path resolves outside $package_dir"
+            exit 1
+          fi
+
           if [ ! -f "$bin_target" ]; then
             echo "::error::bun add succeeded but @uniswap/review-cli bin target $bin_target is missing"
             exit 1
