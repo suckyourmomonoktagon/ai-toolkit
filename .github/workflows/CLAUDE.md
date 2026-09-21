@@ -865,7 +865,7 @@ If both are provided, OAuth token takes precedence. At least one authentication 
 >
 > **Note:** If you need assistance installing the Claude GitHub App, please open an issue at [GitHub Issues](https://github.com/Uniswap/ai-toolkit/issues).
 >
-> **Required permissions:** The caller workflow must include `id-token: write` permission (needed by Claude Code Action for ID token creation):
+> **Required permissions:** The caller workflow must grant `contents: read`, `pull-requests: write`, and `id-token: write` to the specific `uses: .../_generate-pr-metadata.yml` job. Keep the workflow-level token locked down (for example `permissions: {}`) so unrelated jobs do not inherit write scopes and zizmor does not flag the workflow for overly broad permissions:
 >
 > ```yaml
 > permissions:
