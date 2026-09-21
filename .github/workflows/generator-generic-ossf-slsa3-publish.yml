@@ -64,10 +64,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          # List the artifacts the provenance will refer to.
-          files=$(find release-assets -type f | sort)
-          # Generate the subjects (base64 encoded).
-          echo "digests=$(sha256sum $files | base64 -w0)" >> "${GITHUB_OUTPUT}"
+          # List the artifacts the provenance will refer to without
+          # collapsing whitespace in filenames.
+          echo "digests=$(find release-assets -type f -print0 | sort -z | xargs -0 sha256sum | base64 -w0)" >> "${GITHUB_OUTPUT}"
 
   provenance:
     needs: [build]
