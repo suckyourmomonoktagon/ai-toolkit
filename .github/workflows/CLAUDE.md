@@ -539,6 +539,8 @@ The step ends by asserting `git status --porcelain` is empty and warns if it is 
 
 **Steps that shell out to the CLI are gated on `steps.install-review-cli.outputs.bin-path != ''`.** That output is empty whenever the install step never ran and also when `install_review_cli` intentionally skips on GitHub Packages auth failures (401/403 downloading `@uniswap/review-cli`). Without the gate, later steps resolve `"$REVIEW_CLI_BIN/review-cli"` to `/review-cli` and fail with exit 127 — replacing the real error in the log with a meaningless one.
 
+The auth-failure detector in `install_review_cli` uses `grep -E`; keep the match as plain `(401|403)` near the registry/package tokens. `\b` is not a word-boundary token in POSIX ERE and can miss real 401/403 failures.
+
 **Gotcha — the `triage` gate must read `.claude/review.yml`.** review-cli's upstream workflow template runs the gate with `--skip-config` to avoid a checkout. Do not copy that here. `--skip-config` passes **no** policy, which is not the same as "the CLI's built-in defaults":
 
 - `skip.drafts` falls back to `true`, which would skip the draft PRs `claude[bot]` opens
