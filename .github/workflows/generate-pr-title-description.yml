@@ -31,6 +31,10 @@ permissions:
   pull-requests: write
   id-token: write
 
+env:
+  HAS_ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+  HAS_CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+
 jobs:
   generate-metadata:
     # Skip conditions:
@@ -42,7 +46,8 @@ jobs:
       !contains(github.head_ref, 'gh-readonly-queue/') &&
       !contains(github.head_ref, 'dependabot/') &&
       !contains(github.head_ref, 'release/') &&
-      !startsWith(github.event.pull_request.title, 'chore(release):')
+      !startsWith(github.event.pull_request.title, 'chore(release):') &&
+      (env.HAS_ANTHROPIC_API_KEY == 'true' || env.HAS_CLAUDE_CODE_OAUTH_TOKEN == 'true')
 
     uses: ./.github/workflows/_generate-pr-metadata.yml
     with:
