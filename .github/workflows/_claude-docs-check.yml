@@ -155,20 +155,20 @@ on:
 
     outputs:
       verdict:
-        description: "PASS or FAIL"
-        value: ${{ jobs.docs-check.outputs.verdict }}
+        description: "PASS, FAIL, or SKIP"
+        value: ${{ jobs.docs-check.outputs.verdict || jobs.auth-skipped.outputs.verdict }}
       suggestion_count:
         description: "Number of suggestions made"
-        value: ${{ jobs.docs-check.outputs.suggestion_count }}
+        value: ${{ jobs.docs-check.outputs.suggestion_count || jobs.auth-skipped.outputs.suggestion_count }}
       branch_name:
         description: "Name of fixup branch if created"
-        value: ${{ jobs.docs-check.outputs.branch_name }}
+        value: ${{ jobs.docs-check.outputs.branch_name || jobs.auth-skipped.outputs.branch_name }}
       branch_url:
         description: "URL to fixup branch if created"
-        value: ${{ jobs.docs-check.outputs.branch_url }}
+        value: ${{ jobs.docs-check.outputs.branch_url || jobs.auth-skipped.outputs.branch_url }}
       commits_pushed:
         description: "Number of commits pushed when auto_commit is enabled"
-        value: ${{ jobs.docs-check.outputs.commits_pushed }}
+        value: ${{ jobs.docs-check.outputs.commits_pushed || jobs.auth-skipped.outputs.commits_pushed }}
 
 # Disable Bun's automatic bunfig.toml loading from CWD. When a workflow
 # checks out PR head content (this workflow checks out PR refs to read
@@ -212,6 +212,42 @@ jobs:
             echo "has_auth=false" >> "$GITHUB_OUTPUT"
             echo "::notice::Skipping PR documentation validation because no Claude authentication is configured."
           fi
+
+  auth-skipped:
+    needs: check-authentication
+    if: needs.check-authentication.outputs.has_auth != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      verdict: ${{ steps.skip.outputs.verdict }}
+      suggestion_count: ${{ steps.skip.outputs.suggestion_count }}
+      branch_name: ${{ steps.skip.outputs.branch_name }}
+      branch_url: ${{ steps.skip.outputs.branch_url }}
+      commits_pushed: ${{ steps.skip.outputs.commits_pushed }}
+    steps:
+      # Security scanning — must be the first step in every non-macOS job.
+      - name: Security Scan
+        uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3 # v0.8.4
+        with:
+          egress-policy: block
+          allowed-domains: |
+            release-assets.githubusercontent.com
+            raw.githubusercontent.com
+            api.anthropic.com
+            claude.ai
+            downloads.claude.ai
+            registry.npmjs.org
+          enable-sudo: false
+
+      - name: Set skipped outputs
+        id: skip
+        run: |
+          echo "verdict=SKIP" >> "$GITHUB_OUTPUT"
+          echo "suggestion_count=0" >> "$GITHUB_OUTPUT"
+          echo "branch_name=" >> "$GITHUB_OUTPUT"
+          echo "branch_url=" >> "$GITHUB_OUTPUT"
+          echo "commits_pushed=0" >> "$GITHUB_OUTPUT"
 
   docs-check:
     needs: check-authentication
