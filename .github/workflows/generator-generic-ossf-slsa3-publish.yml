@@ -38,7 +38,6 @@ jobs:
       - name: Download release assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
           mkdir -p release-assets
@@ -49,9 +48,14 @@ jobs:
             exit 1
           fi
 
-          gh release download "$RELEASE_TAG_NAME" \
-            --repo "$GITHUB_REPOSITORY" \
-            --dir release-assets
+          jq -r '.release.assets[] | [.name, .url] | @tsv' "$GITHUB_EVENT_PATH" |
+            while IFS=$'\t' read -r asset_name asset_url; do
+              curl -fsSL \
+                -H "Accept: application/octet-stream" \
+                -u "$GITHUB_ACTOR:$GITHUB_TOKEN" \
+                "$asset_url" \
+                -o "release-assets/$asset_name"
+            done
 
       # ========================================================
       #
