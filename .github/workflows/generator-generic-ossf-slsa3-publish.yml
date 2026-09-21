@@ -50,6 +50,11 @@ jobs:
 
           jq -r '.release.assets[] | [.name, .url] | @tsv' "$GITHUB_EVENT_PATH" |
             while IFS=$'\t' read -r asset_name asset_url; do
+              if [[ "$asset_name" == *$'\n'* ]]; then
+                echo "::error::Release asset path contains a newline, which cannot be represented safely in sha256sum provenance subjects: $asset_name"
+                exit 1
+              fi
+
               curl -fsSL \
                 -H "Accept: application/octet-stream" \
                 -u "$GITHUB_ACTOR:$GITHUB_TOKEN" \
@@ -73,13 +78,6 @@ jobs:
             echo "::error::Release assets were listed, but no downloadable files were found in release-assets."
             exit 1
           fi
-
-          for file in "${files[@]}"; do
-            if [[ "$file" == *$'\n'* ]]; then
-              echo "::error::Release asset path contains a newline, which cannot be represented safely in sha256sum provenance subjects: $file"
-              exit 1
-            fi
-          done
 
           echo "hashes=$(sha256sum "${files[@]}" | base64 -w0)" >> "${GITHUB_OUTPUT}"
 

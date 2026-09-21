@@ -26,8 +26,11 @@ describe('PR title workflow regression checks', () => {
   it('revalidates generated titles after the metadata workflow completes', () => {
     const workflow = readFileSync(prTitleWorkflowPath, 'utf-8');
 
-    expect(workflow).toContain('workflow_run:');
-    expect(workflow).toContain('"Claude: Generate PR Title & Description"');
+    expect(workflow).toContain(`workflow_run:
+    workflows:
+      - "Claude: Generate PR Title & Description"
+    types:
+      - completed`);
     expect(workflow).toContain("github.event_name == 'workflow_run' &&");
     expect(workflow).toContain("github.event.workflow_run.conclusion == 'success' &&");
     expect(workflow).toContain("github.event.workflow_run.event == 'pull_request'");
