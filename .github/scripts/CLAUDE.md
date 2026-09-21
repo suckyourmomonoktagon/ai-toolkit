@@ -110,16 +110,17 @@ npx nx test github-scripts --configuration=ci
 
 Tests are co-located with source files using the `.spec.ts` extension:
 
-| File                        | Tests                                                                        |
-| --------------------------- | ---------------------------------------------------------------------------- |
-| `build-prompt.spec.ts`      | Template substitution, section ordering, overrides, conditional sections     |
-| `ci-check-pr-title.spec.ts` | Regression coverage for Copilot branch detection and PR-title workflow skips |
+| File                         | Tests                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------ |
+| `build-prompt.spec.ts`       | Template substitution, section ordering, overrides, conditional sections                   |
+| `claude-code-review.spec.ts` | Regression coverage for review-cli triage/install skip behavior on package access failures |
+| `ci-check-pr-title.spec.ts`  | Regression coverage for Copilot branch detection and PR-title workflow skips               |
 
 ### Test Patterns
 
 - **Mocking**: Uses `memfs` to mock the filesystem
 - **Test Organization**: Tests are grouped by function/feature using `describe` blocks
-- **Coverage**: Includes workflow regression checks for `copilot/*` PR-title skip behavior alongside the prompt-builder tests
+- **Coverage**: Includes workflow regression checks for `copilot/*` PR-title skip behavior and Claude Code Review's review-cli-install skip path alongside the prompt-builder tests
 
 ## Project Configuration
 
