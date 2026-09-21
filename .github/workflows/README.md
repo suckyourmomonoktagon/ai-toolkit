@@ -211,6 +211,8 @@ The [Claude GitHub App](https://github.com/apps/claude) must be installed on you
 | `NODE_AUTH_TOKEN`                  | publish-packages.yml                        | Publish to NPM registry                             |
 
 > **Note:** External consumers of the reusable workflows (e.g., `_claude-code-review.yml`, `_generate-pr-metadata.yml`) do **not** need `WORKFLOW_PAT`. The ai-toolkit repository is public, so fetching default prompts requires no authentication.
+>
+> **Note:** `_generate-pr-metadata.yml` requires either `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` to actually generate PR metadata, but it now skips cleanly with a notice when neither credential is configured.
 
 ## Usage Examples
 
