@@ -32,13 +32,43 @@ permissions:
   id-token: write
 
 jobs:
+  # Cheap pre-check so forks/environments without Claude credentials configured
+  # get a clean skip instead of the reusable workflow hard-failing partway
+  # through (validate-claude-auth exits 1 when neither secret is set). Secrets
+  # can't be read in a job-level `if:`, so surface presence via job-level env
+  # (per .github/workflows/CLAUDE.md) and expose it as a job output instead.
+  check-auth:
+    runs-on: ubuntu-latest
+    permissions: {}
+    env:
+      HAS_ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+      HAS_CLAUDE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+    outputs:
+      has-auth: ${{ steps.check.outputs.has-auth }}
+    steps:
+      - uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3 # v0.8.4
+        with:
+          egress-policy: block
+      - name: Check Claude authentication
+        id: check
+        run: |
+          if [ "$HAS_ANTHROPIC_API_KEY" = "true" ] || [ "$HAS_CLAUDE_OAUTH_TOKEN" = "true" ]; then
+            echo "has-auth=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has-auth=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping PR title/description generation: neither ANTHROPIC_API_KEY nor CLAUDE_CODE_OAUTH_TOKEN is configured for this repository."
+          fi
+
   generate-metadata:
+    needs: check-auth
     # Skip conditions:
+    # - No Claude authentication configured (see check-auth job above)
     # - Merge queue PRs (handled separately)
     # - Dependabot PRs (already have proper titles)
     # - Release PRs (have their own format)
     # - Production promotion PRs (have their own format)
     if: |
+      needs.check-auth.outputs.has-auth == 'true' &&
       !contains(github.head_ref, 'gh-readonly-queue/') &&
       !contains(github.head_ref, 'dependabot/') &&
       !contains(github.head_ref, 'release/') &&
