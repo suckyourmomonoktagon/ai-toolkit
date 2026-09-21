@@ -173,6 +173,8 @@ jobs:
   generate-metadata:
     runs-on: ubuntu-latest
     timeout-minutes: ${{ inputs.timeout_minutes }}
+    env:
+      HAS_CLAUDE_AUTH: ${{ secrets.ANTHROPIC_API_KEY != '' || secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
 
     # Permissions the CALLING workflow must grant its calling job (matching or higher).
     # A reusable workflow cannot be granted more than its caller provides, so a caller that
@@ -241,9 +243,15 @@ jobs:
           persist-credentials: false
           fetch-depth: 0 # Full history needed for git merge-base and history analysis
 
+      - name: Skip generation without Claude auth
+        if: env.HAS_CLAUDE_AUTH != 'true'
+        run: |
+          echo "::notice::Skipping PR metadata generation: neither ANTHROPIC_API_KEY nor CLAUDE_CODE_OAUTH_TOKEN is configured."
+
       # Download validate-claude-auth action if caller repo doesn't have it
       # This allows external repos to use this reusable workflow without copying the action
       - name: Ensure validate-claude-auth action exists
+        if: env.HAS_CLAUDE_AUTH == 'true'
         env:
           TOOLKIT_REF: ${{ inputs.toolkit_ref }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -286,6 +294,7 @@ jobs:
           fi
 
       - name: Validate authentication
+        if: env.HAS_CLAUDE_AUTH == 'true'
         uses: ./.github/actions/validate-claude-auth
         with:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -293,6 +302,7 @@ jobs:
 
       # Calculate patch-ID (stable hash of code changes, survives rebases)
       - name: Calculate Patch ID
+        if: env.HAS_CLAUDE_AUTH == 'true'
         id: patch-id
         env:
           BASE_REF: ${{ inputs.base_ref }}
@@ -318,6 +328,7 @@ jobs:
 
       # Check cache to see if we've already processed this exact code
       - name: Check Generation Cache
+        if: env.HAS_CLAUDE_AUTH == 'true'
         id: cache-check
         uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
@@ -327,7 +338,7 @@ jobs:
 
       # Early exit if we've already processed this code (rebase detected)
       - name: Skip Generation if No Changes
-        if: steps.cache-check.outputs.cache-hit == 'true'
+        if: env.HAS_CLAUDE_AUTH == 'true' && steps.cache-check.outputs.cache-hit == 'true'
         env:
           PATCH_ID: ${{ steps.patch-id.outputs.patch_id }}
         run: |
@@ -341,7 +352,7 @@ jobs:
 
       # Gather commit history for pattern learning
       - name: Gather Commit History
-        if: steps.cache-check.outputs.cache-hit != 'true'
+        if: env.HAS_CLAUDE_AUTH == 'true' && steps.cache-check.outputs.cache-hit != 'true'
         id: commit-history
         env:
           COMMIT_COUNT: ${{ inputs.commit_history_count }}
@@ -367,7 +378,7 @@ jobs:
 
       # Gather PR description history for template learning
       - name: Gather PR Description History
-        if: steps.cache-check.outputs.cache-hit != 'true'
+        if: env.HAS_CLAUDE_AUTH == 'true' && steps.cache-check.outputs.cache-hit != 'true'
         id: pr-history
         env:
           PR_COUNT: ${{ inputs.pr_history_count }}
@@ -391,7 +402,7 @@ jobs:
 
       # Get current PR information
       - name: Get Current PR Info
-        if: steps.cache-check.outputs.cache-hit != 'true'
+        if: env.HAS_CLAUDE_AUTH == 'true' && steps.cache-check.outputs.cache-hit != 'true'
         id: pr-info
         env:
           PR_NUMBER: ${{ inputs.pr_number }}
@@ -430,7 +441,7 @@ jobs:
       # descriptions are already well-written (e.g., via local Claude Code).
       # Three-step process: prep → evaluate (Haiku) → parse verdict
       - name: Prepare Quality Gate Evaluation
-        if: steps.cache-check.outputs.cache-hit != 'true' && inputs.skip_if_description_adequate
+        if: env.HAS_CLAUDE_AUTH == 'true' && steps.cache-check.outputs.cache-hit != 'true' && inputs.skip_if_description_adequate
         id: quality-gate-prep
         env:
           PR_NUMBER: ${{ inputs.pr_number }}
@@ -481,6 +492,7 @@ jobs:
 
       - name: Run Quality Gate Evaluation
         if: |
+          env.HAS_CLAUDE_AUTH == 'true' &&
           steps.cache-check.outputs.cache-hit != 'true' &&
           inputs.skip_if_description_adequate &&
           steps.quality-gate-prep.outputs.has_user_content == 'true'
@@ -525,7 +537,7 @@ jobs:
           track_progress: false
 
       - name: Parse Quality Gate Verdict
-        if: steps.cache-check.outputs.cache-hit != 'true' && inputs.skip_if_description_adequate
+        if: env.HAS_CLAUDE_AUTH == 'true' && steps.cache-check.outputs.cache-hit != 'true' && inputs.skip_if_description_adequate
         id: quality-gate
         env:
           HAS_USER_CONTENT: ${{ steps.quality-gate-prep.outputs.has_user_content }}
@@ -561,7 +573,7 @@ jobs:
       # != 'true', so generation proceeds. This relies on GitHub Actions'
       # implicit empty-string behavior for skipped step outputs.
       - name: Build Generation Prompt
-        if: steps.cache-check.outputs.cache-hit != 'true' && steps.quality-gate.outputs.should_skip != 'true'
+        if: env.HAS_CLAUDE_AUTH == 'true' && steps.cache-check.outputs.cache-hit != 'true' && steps.quality-gate.outputs.should_skip != 'true'
         id: build-prompt
         env:
           CUSTOM_PROMPT_INPUT: ${{ inputs.custom_prompt }}
@@ -858,7 +870,7 @@ jobs:
 
       # Build Claude arguments with proper escaping for tool specifications
       - name: Build Claude Arguments
-        if: steps.cache-check.outputs.cache-hit != 'true' && steps.quality-gate.outputs.should_skip != 'true'
+        if: env.HAS_CLAUDE_AUTH == 'true' && steps.cache-check.outputs.cache-hit != 'true' && steps.quality-gate.outputs.should_skip != 'true'
         id: build-args
         env:
           INPUT_ALLOWED_TOOLS: ${{ inputs.allowed_tools }}
@@ -927,6 +939,7 @@ jobs:
       # Build plugin configuration using shared composite action
       - name: Build plugin configuration
         if: |
+          env.HAS_CLAUDE_AUTH == 'true' &&
           steps.cache-check.outputs.cache-hit != 'true' &&
           steps.quality-gate.outputs.should_skip != 'true'
         id: build-plugins
@@ -942,7 +955,7 @@ jobs:
       # (e.g., dependabot PRs with huge changelogs). This matches the pattern used in
       # _claude-code-review.yml.
       - name: Run Claude Code Generation
-        if: steps.cache-check.outputs.cache-hit != 'true' && steps.quality-gate.outputs.should_skip != 'true'
+        if: env.HAS_CLAUDE_AUTH == 'true' && steps.cache-check.outputs.cache-hit != 'true' && steps.quality-gate.outputs.should_skip != 'true'
         id: claude
         uses: anthropics/claude-code-action@a874e9ecd7bb36efdad65429c6b35815f5a08f10 # v1.0.210
         with:
@@ -961,7 +974,7 @@ jobs:
 
       # Update PR title and description using generated files
       - name: Update PR Metadata
-        if: steps.cache-check.outputs.cache-hit != 'true' && steps.quality-gate.outputs.should_skip != 'true' && success()
+        if: env.HAS_CLAUDE_AUTH == 'true' && steps.cache-check.outputs.cache-hit != 'true' && steps.quality-gate.outputs.should_skip != 'true' && success()
         env:
           PR_NUMBER: ${{ inputs.pr_number }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -1160,7 +1173,7 @@ jobs:
 
       # Save successful generation to cache
       - name: Save Generation Cache Marker
-        if: steps.cache-check.outputs.cache-hit != 'true' && steps.quality-gate.outputs.should_skip != 'true' && success()
+        if: env.HAS_CLAUDE_AUTH == 'true' && steps.cache-check.outputs.cache-hit != 'true' && steps.quality-gate.outputs.should_skip != 'true' && success()
         env:
           PATCH_ID: ${{ steps.patch-id.outputs.patch_id }}
         run: |
@@ -1170,7 +1183,7 @@ jobs:
 
       # Persist cache for future rebase detection
       - name: Cache Generation State
-        if: steps.cache-check.outputs.cache-hit != 'true' && steps.quality-gate.outputs.should_skip != 'true' && success()
+        if: env.HAS_CLAUDE_AUTH == 'true' && steps.cache-check.outputs.cache-hit != 'true' && steps.quality-gate.outputs.should_skip != 'true' && success()
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: .pr-metadata-cache
@@ -1178,7 +1191,7 @@ jobs:
 
       # Post error comment if workflow fails (failure case)
       - name: Post Generation Error Comment
-        if: steps.cache-check.outputs.cache-hit != 'true' && failure()
+        if: env.HAS_CLAUDE_AUTH == 'true' && steps.cache-check.outputs.cache-hit != 'true' && failure()
         env:
           PR_NUMBER: ${{ inputs.pr_number }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
