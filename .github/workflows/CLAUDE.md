@@ -554,6 +554,7 @@ So the `triage` job does a sparse checkout of `.github/actions` and `.claude`, a
 | `.claude/agents/*-reviewer.md`       | Repo-specific reviewers, **added to** review-cli's bundled set (not replacing it)                                                                   |
 | `.github/actions/install_review_cli` | Installs the CLI from GitHub Packages into an isolated `$RUNNER_TEMP` dir. In the `review` job it is resolved from the trusted ref, not the PR head |
 | `vars.REVIEW_CLI_VERSION`            | CLI version override; falls back to the pin in the workflow. Never `@latest`                                                                        |
+| `secrets.REVIEW_CLI_TOKEN`           | Optional token with `packages:read` to install private `@uniswap/review-cli` from GitHub Packages; falls back to `GITHUB_TOKEN`                     |
 | `secrets.CLAUDE_CODE_OAUTH_TOKEN`    | **Required.** `ANTHROPIC_API_KEY` is deliberately never forwarded to the review job                                                                 |
 | `secrets.DATADOG_API_KEY`            | Optional. Enables CI Visibility stamping; the step is skipped when unset                                                                            |
 
@@ -578,6 +579,7 @@ Do **not** "fix" this by widening `Post` to `always()`. Cancellation is also how
 - Draft PRs authored by `claude[bot]` are still reviewed on open. review-cli's `skip.drafts` is a single boolean that cannot express that carve-out, so `skip.drafts` is `false` and the draft policy lives in the `triage` job's `if:` instead.
 - Title-based automation detection (`chore(release):`, `chore(sync):`) is retained through `check-automated`, because review-cli's skip policy matches branches and authors but has no notion of PR titles.
 - Fork PRs are never reviewed. The `review` job checks out PR head code and runs an agent with Bash access; review-cli's triage has no fork concept, and the `issue_comment` / `workflow_dispatch` payloads carry no head-repo field, so the `triage` job resolves it via the API.
+- If `install_review_cli` cannot install the private package (for example missing `REVIEW_CLI_TOKEN` access), triage now emits a notice and exits cleanly so the workflow skips AI review instead of hard-failing.
 - `workflow_dispatch` still accepts `pr_number` and `force_review`. `force_review` maps to `--force` (skip rebase detection), **not** `--fresh` — `--fresh` would also discard prior findings and thread decisions, losing the iterative review context.
 
 **Triggering a review without pushing code:** comment `@request-claude-review` on the PR (works on both regular and inline review comments), or dispatch manually:
