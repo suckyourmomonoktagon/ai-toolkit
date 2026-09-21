@@ -52,7 +52,7 @@ jobs:
   # worker's validate-claude-auth step fails hard when both are absent, so
   # check here first and skip cleanly instead of surfacing a red X for
   # missing configuration.
-  check-auth:
+  check-authentication:
     runs-on: ubuntu-latest
     env:
       HAS_CLAUDE_AUTH: ${{ secrets.ANTHROPIC_API_KEY != '' || secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
@@ -70,11 +70,10 @@ jobs:
           fi
 
   docs-check:
-    needs: check-auth
     # Skip bots and fork PRs (fork code is attacker-controlled)
     # workflow_dispatch fork check is handled inside _claude-docs-check.yml
     if: |
-      needs.check-auth.outputs.has_auth == 'true' &&
+      needs.check-authentication.outputs.has_auth == 'true' &&
       (
         github.event_name == 'workflow_dispatch' ||
         (
@@ -83,6 +82,7 @@ jobs:
           github.event.pull_request.head.repo.full_name == github.repository
         )
       )
+    needs: check-authentication
     permissions:
       id-token: write
       contents: write
