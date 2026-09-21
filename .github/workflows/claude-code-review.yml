@@ -188,19 +188,19 @@ jobs:
     env:
       HAS_REVIEW_CLI_TOKEN: ${{ secrets.REVIEW_CLI_TOKEN != '' }}
     outputs:
-      run: ${{ steps.gate.outputs.run || 'false' }}
-      pr_number: ${{ steps.gate.outputs.pr_number || github.event.pull_request.number || github.event.issue.number || inputs.pr_number || '' }}
-      comment_id: ${{ steps.gate.outputs.comment_id || '' }}
-      trigger_source: ${{ steps.gate.outputs.trigger_source || '' }}
-      note: ${{ steps.gate.outputs.note || '' }}
-      commenter: ${{ steps.gate.outputs.commenter || '' }}
-      thread_anchor: ${{ steps.gate.outputs.thread_anchor || '' }}
-      is_fork: ${{ steps.fork_check.outputs.is_fork || 'false' }}
-      review_cli_available: ${{ steps.install-review-cli.outcome == 'success' }}
+      run: ${{ steps.finalize.outputs.run }}
+      pr_number: ${{ steps.finalize.outputs.pr_number }}
+      comment_id: ${{ steps.finalize.outputs.comment_id }}
+      trigger_source: ${{ steps.finalize.outputs.trigger_source }}
+      note: ${{ steps.finalize.outputs.note }}
+      commenter: ${{ steps.finalize.outputs.commenter }}
+      thread_anchor: ${{ steps.finalize.outputs.thread_anchor }}
+      is_fork: ${{ steps.finalize.outputs.is_fork }}
+      review_cli_available: ${{ steps.finalize.outputs.review_cli_available }}
       # Set only when a running-state reply was posted in this job. The
       # review job PATCHes this reply with the terminal verdict. Empty for
       # push-driven runs, which have no comment to reply to.
-      reply_id: ${{ steps.post_reply.outputs.id || '' }}
+      reply_id: ${{ steps.finalize.outputs.reply_id }}
     steps:
       - uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3 # v0.8.4
 
@@ -389,6 +389,41 @@ jobs:
           else
             echo "::warning::posted a running-state reply but could not capture its id; it will never be updated with the terminal verdict"
           fi
+
+      - name: Finalize triage outputs
+        if: always()
+        id: finalize
+        env:
+          GATE_RUN: ${{ steps.gate.outputs.run }}
+          GATE_PR_NUMBER: ${{ steps.gate.outputs.pr_number }}
+          GATE_COMMENT_ID: ${{ steps.gate.outputs.comment_id }}
+          GATE_TRIGGER_SOURCE: ${{ steps.gate.outputs.trigger_source }}
+          GATE_NOTE: ${{ steps.gate.outputs.note }}
+          GATE_COMMENTER: ${{ steps.gate.outputs.commenter }}
+          GATE_THREAD_ANCHOR: ${{ steps.gate.outputs.thread_anchor }}
+          FORK_IS_FORK: ${{ steps.fork_check.outputs.is_fork }}
+          POST_REPLY_ID: ${{ steps.post_reply.outputs.id }}
+          INSTALL_OUTCOME: ${{ steps.install-review-cli.outcome }}
+          FALLBACK_PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number || inputs.pr_number || '' }}
+        run: |
+          set -euo pipefail
+          if [ "$INSTALL_OUTCOME" = "success" ]; then
+            REVIEW_CLI_AVAILABLE=true
+          else
+            REVIEW_CLI_AVAILABLE=false
+          fi
+          {
+            echo "run=${GATE_RUN:-false}"
+            echo "pr_number=${GATE_PR_NUMBER:-$FALLBACK_PR_NUMBER}"
+            echo "comment_id=${GATE_COMMENT_ID:-}"
+            echo "trigger_source=${GATE_TRIGGER_SOURCE:-}"
+            echo "note=${GATE_NOTE:-}"
+            echo "commenter=${GATE_COMMENTER:-}"
+            echo "thread_anchor=${GATE_THREAD_ANCHOR:-}"
+            echo "is_fork=${FORK_IS_FORK:-false}"
+            echo "review_cli_available=$REVIEW_CLI_AVAILABLE"
+            echo "reply_id=${POST_REPLY_ID:-}"
+          } >> "$GITHUB_OUTPUT"
 
   review:
     name: AI review
