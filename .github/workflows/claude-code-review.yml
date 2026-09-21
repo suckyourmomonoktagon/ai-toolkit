@@ -231,22 +231,13 @@ jobs:
             .claude
           sparse-checkout-cone-mode: false
 
-      - name: Checkout trusted installer action
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-          ref: ${{ github.event.repository.default_branch }}
-          path: .review-tooling
-          sparse-checkout: |
-            .github/actions/install_review_cli
-          sparse-checkout-cone-mode: false
-
       - name: Check review-cli token
         env:
           REVIEW_CLI_TOKEN: ${{ secrets.REVIEW_CLI_TOKEN }}
         run: |
           if [ -z "$REVIEW_CLI_TOKEN" ]; then
-            echo "::notice::AI review skipped because REVIEW_CLI_TOKEN is not configured."
+            echo "::error::REVIEW_CLI_TOKEN is not configured. Add the secret with packages:read access to install @uniswap/review-cli."
+            exit 1
           fi
 
       - name: Checkout trusted installer action
