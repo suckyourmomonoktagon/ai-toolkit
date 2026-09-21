@@ -12,7 +12,6 @@
 
 name: SLSA generic generator
 on:
-  workflow_dispatch:
   release:
     types: [created]
 
@@ -33,21 +32,31 @@ jobs:
 
       # ========================================================
       #
-      # Step 1: Build your artifacts.
+      # Step 1: Download release artifacts.
       #
       # ========================================================
-      - name: Build artifacts
+      - name: Download release assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
-            # These are some amazing artifacts.
-            echo "artifact1" > artifact1
-            echo "artifact2" > artifact2
+          set -euo pipefail
+          mkdir -p release-assets
+
+          asset_count="$(jq '.release.assets | length' "$GITHUB_EVENT_PATH")"
+          if [ "$asset_count" -eq 0 ]; then
+            echo "::error::Release has no assets; skipping provenance."
+            exit 1
+          fi
+
+          gh release download "$RELEASE_TAG_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir release-assets
 
       # ========================================================
       #
       # Step 2: Add a step to generate the provenance subjects
-      #         as shown below. Update the sha256 sum arguments
-      #         to include all binaries that you generate
-      #         provenance for.
+      #         for the downloaded release artifacts.
       #
       # ========================================================
       - name: Generate subject for provenance
@@ -56,9 +65,9 @@ jobs:
           set -euo pipefail
 
           # List the artifacts the provenance will refer to.
-          files=$(ls artifact*)
+          files=$(find release-assets -type f | sort)
           # Generate the subjects (base64 encoded).
-          echo "hashes=$(sha256sum $files | base64 -w0)" >> "${GITHUB_OUTPUT}"
+          echo "digests=$(sha256sum $files | base64 -w0)" >> "${GITHUB_OUTPUT}"
 
   provenance:
     needs: [build]

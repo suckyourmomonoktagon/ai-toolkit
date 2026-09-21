@@ -7,17 +7,23 @@ on:
       - opened
       - edited
       - synchronize
+  workflow_run:
+    workflows:
+      - "Claude: Generate PR Title & Description"
+    types:
+      - completed
 
 permissions:
   contents: read
   pull-requests: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   check-pr-title:
+    if: github.event_name == 'pull_request_target'
     name: 🔡 Check PR Title
     runs-on: ubuntu-latest
     steps:
@@ -64,3 +70,97 @@ jobs:
           SKIP_REASON: ${{ steps.check-automated.outputs.is_automated == 'true' && steps.check-automated.outputs.skip_reason || 'GitHub Copilot coding agent branch (copilot/* prefix); title is machine-generated from the task description' }}
         run: |
           echo "Automated PR detected: $SKIP_REASON. This check is automatically passed."
+
+  check-generated-pr-title:
+    if: |
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+    name: 🔡 Check Generated PR Title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3
+        with:
+          egress-policy: block
+
+      - name: Checkout repository (for composite action)
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/actions
+          sparse-checkout-cone-mode: false
+
+      - name: Load PR metadata
+        id: pr-metadata
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const pullRequest = context.payload.workflow_run.pull_requests?.[0];
+            if (!pullRequest) {
+              core.setOutput('should_validate', 'false');
+              core.setOutput('skip_reason', 'No associated pull request on workflow_run payload.');
+              return;
+            }
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pullRequest.number,
+            });
+
+            core.setOutput('should_validate', pr.state === 'open' ? 'true' : 'false');
+            core.setOutput('skip_reason', pr.state === 'open' ? '' : `Pull request #${pr.number} is ${pr.state}.`);
+            core.setOutput('pull_number', String(pr.number));
+            core.setOutput('branch_name', pr.head.ref);
+            core.setOutput('title', pr.title);
+
+      - name: Check for automated PR
+        if: ${{ steps.pr-metadata.outputs.should_validate == 'true' }}
+        id: check-automated
+        uses: ./.github/actions/check-automated-pr
+        with:
+          branch_name: ${{ steps.pr-metadata.outputs.branch_name }}
+          pr_title: ${{ steps.pr-metadata.outputs.title }}
+
+      - name: Write synthetic pull_request_target event
+        if: ${{ steps.pr-metadata.outputs.should_validate == 'true' && steps.check-automated.outputs.is_automated != 'true' && !startsWith(steps.pr-metadata.outputs.branch_name, 'copilot/') }}
+        id: synthetic-event
+        env:
+          EVENT_PATH: ${{ runner.temp }}/ci-check-pr-title-workflow-run-event.json
+          PR_NUMBER: ${{ steps.pr-metadata.outputs.pull_number }}
+          PR_TITLE: ${{ steps.pr-metadata.outputs.title }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+
+          with open(os.environ['EVENT_PATH'], 'w', encoding='utf-8') as fh:
+              json.dump(
+                  {
+                      'pull_request': {
+                          'number': int(os.environ['PR_NUMBER']),
+                          'title': os.environ['PR_TITLE'],
+                          'labels': [],
+                      }
+                  },
+                  fh,
+              )
+          PY
+          echo "event_path=$EVENT_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Conditional semantic PR check
+        if: ${{ steps.pr-metadata.outputs.should_validate == 'true' && steps.check-automated.outputs.is_automated != 'true' && !startsWith(steps.pr-metadata.outputs.branch_name, 'copilot/') }}
+        uses: amannn/action-semantic-pull-request@536f681e2c60d973396eb60457d42ced8cd3f61a
+        with:
+          requireScope: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_EVENT_NAME: pull_request_target
+          GITHUB_EVENT_PATH: ${{ steps.synthetic-event.outputs.event_path }}
+
+      - name: Pass check for skipped generated-title validation
+        if: ${{ steps.pr-metadata.outputs.should_validate != 'true' || steps.check-automated.outputs.is_automated == 'true' || startsWith(steps.pr-metadata.outputs.branch_name, 'copilot/') }}
+        env:
+          SKIP_REASON: ${{ steps.pr-metadata.outputs.should_validate != 'true' && steps.pr-metadata.outputs.skip_reason || steps.check-automated.outputs.is_automated == 'true' && steps.check-automated.outputs.skip_reason || 'GitHub Copilot coding agent branch (copilot/* prefix); title is machine-generated from the task description' }}
+        run: |
+          echo "PR title validation skipped: $SKIP_REASON"

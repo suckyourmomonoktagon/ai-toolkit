@@ -21,12 +21,12 @@ Contains GitHub Actions workflow definitions that automate CI/CD, code quality, 
 
 - `claude-code.yml` - Responds to @claude mentions in issues and PRs
 - `claude-code-review.yml` - Automated PR code reviews for **this** repository, via `@uniswap/review-cli`. Does not call `_claude-code-review.yml` (see [PR Code Review for this repository](#pr-code-review-for-this-repository-claude-code-reviewyml))
-- `claude-docs-check.yml` - Validates PR documentation is properly updated (CLAUDE.md, README, versions), forwards either Claude auth secret to `_claude-docs-check.yml`, and skips early when neither auth secret is configured
+- `claude-docs-check.yml` - Validates PR documentation is properly updated (CLAUDE.md, README, versions), forwards either Claude auth secret to `_claude-docs-check.yml`, and lets the reusable workflow's preflight skip cleanly when neither auth secret is configured
 - `generate-pr-title-description.yml` - Auto-generates PR titles and descriptions using Claude
 
 ### PR Title Validation (1 workflow)
 
-- `ci-check-pr-title.yml` - Validates PR titles follow conventional commit format
+- `ci-check-pr-title.yml` - Validates PR titles follow conventional commit format, including a workflow-run follow-up after Claude regenerates PR metadata
 
 ### Autonomous Task Processing (3 workflows)
 
@@ -568,7 +568,7 @@ So the `triage` job does a sparse checkout of `.github/actions` and `.claude`, a
 | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `.claude/review.yml`                 | Model, per-agent budget, skip policy, investigation gate, diff summarization, triage staffing                                                                                                                                                                                           |
 | `.claude/agents/*-reviewer.md`       | Repo-specific reviewers, **added to** review-cli's bundled set (not replacing it)                                                                                                                                                                                                       |
-| `.github/actions/install_review_cli` | Installs the CLI from GitHub Packages into an isolated `$RUNNER_TEMP` dir. In the `review` job it is resolved from the trusted ref, not the PR head                                                                                                                                     |
+| `.github/actions/install_review_cli` | Installs the CLI from GitHub Packages into an isolated `$RUNNER_TEMP` dir. In the review workflow it is resolved from the trusted ref, not the PR head                                                                                                                                  |
 | `vars.REVIEW_CLI_VERSION`            | CLI version override; falls back to the pin in the workflow. Never `@latest`                                                                                                                                                                                                            |
 | `secrets.REVIEW_CLI_TOKEN`           | Optional. A token with `packages:read` access; when absent or unable to access the package, the triage job reports a notice and skips AI review successfully. The installer also treats Bun's "403 but no installed package" path as unavailable review-cli rather than a hard failure. |
 | `secrets.CLAUDE_CODE_OAUTH_TOKEN`    | **Required.** `ANTHROPIC_API_KEY` is deliberately never forwarded to the review job                                                                                                                                                                                                     |
@@ -1267,7 +1267,7 @@ These workflows are prefixed with two `__` and are only used within this reposit
 ### Consumer Workflows
 
 - `ci-pr-checks.yml` - Main PR validation pipeline
-- `ci-check-pr-title.yml` - PR title format validation; semantic validation is skipped for automated PRs (`check-automated-pr`) and for `copilot/*` coding-agent branches, whose titles are machine-generated from the task description rather than authored by a human contributor.
+- `ci-check-pr-title.yml` - PR title format validation; semantic validation is skipped for automated PRs (`check-automated-pr`) and locally for `copilot/*` coding-agent branches, whose titles are machine-generated from the task description rather than authored by a human contributor. A `workflow_run` follow-up revalidates titles after `generate-pr-title-description.yml` edits the PR metadata.
 - `claude-auto-tasks.yml` - Autonomous task processing from Linear (scheduled)
 - `claude-code.yml` - Enables @claude mentions
 - `claude-code-review.yml` - Automated code reviews via `@uniswap/review-cli`
