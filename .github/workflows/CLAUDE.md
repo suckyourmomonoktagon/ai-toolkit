@@ -89,6 +89,8 @@ You can authenticate with Claude using either method:
 
 If both are provided, OAuth token takes precedence. At least one authentication method must be configured.
 
+The top-level `claude-docs-check.yml` caller now performs a cheap preflight check and skips the reusable workflow with a notice when neither secret is configured, instead of surfacing a failing `Validate Authentication` step for a missing-repository-secrets condition.
+
 > **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
 
 **Configuration Inputs:**
@@ -873,11 +875,15 @@ If both are provided, OAuth token takes precedence. At least one authentication 
 > **Required permissions:** The caller workflow must include `id-token: write` permission (needed by Claude Code Action for ID token creation):
 >
 > ```yaml
-> permissions:
->   contents: read
->   pull-requests: write
->   id-token: write
+> jobs:
+>   generate-metadata:
+>     permissions:
+>       contents: read
+>       pull-requests: write
+>       id-token: write
 > ```
+>
+> If the caller has helper jobs that do not need elevated permissions, grant these on the specific reusable-workflow calling job instead of at the workflow root.
 
 **Usage example (API Key):**
 

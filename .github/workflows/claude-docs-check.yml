@@ -47,9 +47,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Skip gracefully when Claude credentials are not configured. The reusable
-  # workflow's validate-claude-auth step hard-fails when both credentials are
-  # absent, so gate before invoking it.
   check-authentication:
     runs-on: ubuntu-latest
     env:
@@ -58,6 +55,7 @@ jobs:
       has_auth: ${{ steps.check.outputs.has_auth }}
     steps:
       - uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3 # v0.8.4
+
       - name: Check Claude authentication
         id: check
         run: |
