@@ -636,10 +636,11 @@ This workflow validates that PR documentation is properly updated based on code 
 
 **Verdict Logic:**
 
-| Verdict  | When Returned                                                       |
-| -------- | ------------------------------------------------------------------- |
-| **PASS** | No issues found OR only info/minor severity suggestions             |
-| **FAIL** | Any error-level issues (e.g., plugin modified without version bump) |
+| Verdict  | When Returned                                                                                    |
+| -------- | ------------------------------------------------------------------------------------------------ |
+| **PASS** | No issues found OR only info/minor severity suggestions                                          |
+| **FAIL** | Any error-level issues (e.g., plugin modified without version bump)                              |
+| **SKIP** | Claude authentication is unavailable, so the reusable workflow skips validation and returns zeros |
 
 **Required Secrets:**
 
@@ -656,7 +657,7 @@ You can authenticate with Claude using either method:
 1. **API Key (Traditional):** Set `ANTHROPIC_API_KEY` with your Anthropic API key
 2. **OAuth Token (Pro/Max Users):** Set `CLAUDE_CODE_OAUTH_TOKEN` with a token generated via `claude setup-token`
 
-If both are provided, OAuth token takes precedence. A preflight job checks for either credential; if neither is configured, the workflow reports a notice and skips validation successfully.
+If both are provided, OAuth token takes precedence. A preflight job checks for either credential; if neither is configured, the workflow reports a notice, skips validation successfully, and returns a `SKIP` verdict with zero suggestions/commits.
 
 > **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
 
@@ -683,7 +684,7 @@ If both are provided, OAuth token takes precedence. A preflight job checks for e
 
 | Output             | Description                                         |
 | ------------------ | --------------------------------------------------- |
-| `verdict`          | PASS or FAIL                                        |
+| `verdict`          | PASS, FAIL, or SKIP                                 |
 | `suggestion_count` | Number of suggestions made                          |
 | `branch_name`      | Name of fixup branch (if created)                   |
 | `branch_url`       | URL to fixup branch (if created)                    |
