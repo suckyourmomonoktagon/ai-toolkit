@@ -49,18 +49,17 @@ describe('Claude Code Review workflow regression checks', () => {
     const action = readYaml<ActionDocument>(installActionPath);
     const installStep = action.runs.steps.find((step) => step.id === 'install');
     const script = installStep?.run ?? '';
-    const warningMatches =
-      script.match(
-        /Unable to access @uniswap\/review-cli from GitHub Packages; continuing without AI review\./g
-      ) ?? [];
-    const softExitMatches = script.match(/exit 0/g) ?? [];
 
     expect(installStep).toBeDefined();
     expect(script).toContain('if bun add "@uniswap/review-cli@${REVIEW_CLI_VERSION}"; then');
     expect(script).toContain('package_dir="$install_dir/node_modules/@uniswap/review-cli"');
     expect(script).toContain('bin_path="$install_dir/node_modules/.bin/review-cli"');
-    expect(warningMatches).toHaveLength(2);
-    expect(softExitMatches.length).toBeGreaterThanOrEqual(2);
+    expect(script).toMatch(
+      /if bun add "@uniswap\/review-cli@\$\{REVIEW_CLI_VERSION\}"; then[\s\S]*else[\s\S]*echo "::warning::Unable to access @uniswap\/review-cli from GitHub Packages; continuing without AI review\."[\s\S]*exit 0[\s\S]*fi/
+    );
+    expect(script).toMatch(
+      /if \[ ! -d "\$package_dir" \]; then[\s\S]*echo "::warning::Unable to access @uniswap\/review-cli from GitHub Packages; continuing without AI review\."[\s\S]*exit 0[\s\S]*fi/
+    );
     expect(script).toMatch(
       /if \[ ! -x "\$bin_path" \]; then[\s\S]*echo "::error::bun add installed \$package_dir but \$bin_path is missing or not executable"[\s\S]*exit 1/
     );
