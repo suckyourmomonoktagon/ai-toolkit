@@ -62,7 +62,7 @@ jobs:
             echo "has_auth=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_auth=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Skipping PR documentation validation because no Claude authentication is configured."
+            echo "::notice::Skipping PR documentation validation because Claude authentication is not available for this workflow run."
           fi
 
   docs-check:
