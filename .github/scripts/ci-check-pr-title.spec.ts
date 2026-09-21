@@ -30,7 +30,15 @@ describe('PR title workflow regression checks', () => {
     workflows:
       - "Claude: Generate PR Title & Description"
     types:
-      - completed`);
+      - completed
+    branches-ignore:
+      - copilot/**
+      - dependabot/**
+      - renovate/**
+      - release/**
+      - gh-readonly-queue/**
+      - gtmq*
+      - chore/update-action-versions-*`);
     expect(workflow).toContain("github.event_name == 'workflow_run' &&");
     expect(workflow).toContain("github.event.workflow_run.conclusion == 'success' &&");
     expect(workflow).toContain("github.event.workflow_run.event == 'pull_request'");

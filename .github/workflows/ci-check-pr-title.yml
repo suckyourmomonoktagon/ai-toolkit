@@ -12,6 +12,14 @@ on:
       - "Claude: Generate PR Title & Description"
     types:
       - completed
+    branches-ignore:
+      - copilot/**
+      - dependabot/**
+      - renovate/**
+      - release/**
+      - gh-readonly-queue/**
+      - gtmq*
+      - chore/update-action-versions-*
 
 permissions:
   contents: read

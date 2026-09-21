@@ -41,12 +41,16 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p release-assets
+          curl_config="$RUNNER_TEMP/release-asset-curl-config.txt"
 
           asset_count="$(jq '.release.assets | length' "$GITHUB_EVENT_PATH")"
           if [ "$asset_count" -eq 0 ]; then
             echo "::error::Release has no assets; skipping provenance."
             exit 1
           fi
+
+          printf '%s\n' 'header = "Accept: application/octet-stream"' > "$curl_config"
+          printf 'header = "%s%s"\n' 'Authorization: Bearer ' "$GITHUB_TOKEN" >> "$curl_config"
 
           jq -r '.release.assets[] | [.name, .url] | @tsv' "$GITHUB_EVENT_PATH" |
             while IFS=$'\t' read -r asset_name asset_url; do
@@ -56,8 +60,7 @@ jobs:
               fi
 
               curl -fsSL \
-                -H "Accept: application/octet-stream" \
-                -u "$GITHUB_ACTOR:$GITHUB_TOKEN" \
+                -K "$curl_config" \
                 "$asset_url" \
                 -o "release-assets/$asset_name"
             done
