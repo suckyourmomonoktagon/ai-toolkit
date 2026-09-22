@@ -87,7 +87,7 @@ You can authenticate with Claude using either method:
 1. **API Key (Traditional):** Set `ANTHROPIC_API_KEY` with your Anthropic API key
 2. **OAuth Token (Pro/Max Users):** Set `CLAUDE_CODE_OAUTH_TOKEN` with a token generated via `claude setup-token`
 
-If both are provided, OAuth token takes precedence. At least one authentication method must be configured.
+If both are provided, OAuth token takes precedence.
 
 The top-level `claude-docs-check.yml` caller now performs a cheap preflight check and skips the reusable workflow with a notice when neither secret is configured, instead of surfacing a failing `Validate Authentication` step for a missing-repository-secrets condition.
 
@@ -866,7 +866,9 @@ You can authenticate with Claude using either method:
 1. **API Key (Traditional):** Set `ANTHROPIC_API_KEY` with your Anthropic API key
 2. **OAuth Token (Pro/Max Users):** Set `CLAUDE_CODE_OAUTH_TOKEN` with a token generated via `claude setup-token`
 
-If both are provided, OAuth token takes precedence. At least one authentication method must be configured.
+If both are provided, OAuth token takes precedence. At least one authentication method must be configured to run generation.
+
+If neither secret is configured, `_generate-pr-metadata.yml` now exits successfully with a notice and skips the auth/download/Claude-generation steps instead of failing red on `validate-claude-auth`. Callers may still add their own outer gate (for example, to skip the reusable workflow entirely), but they no longer have to do so just to avoid a failure on repositories without Claude credentials.
 
 > **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
 >
