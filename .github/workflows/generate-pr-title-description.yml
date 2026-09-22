@@ -40,6 +40,7 @@ jobs:
   # the HAS_DATADOG_API_KEY pattern in claude-code-review.yml.
   check-auth:
     runs-on: ubuntu-latest
+    permissions: {}
     env:
       HAS_CLAUDE_AUTH: ${{ secrets.ANTHROPIC_API_KEY != '' || secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
     outputs:
@@ -69,6 +70,11 @@ jobs:
       !contains(github.head_ref, 'dependabot/') &&
       !contains(github.head_ref, 'release/') &&
       !startsWith(github.event.pull_request.title, 'chore(release):')
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+
     permissions:
       contents: read
       pull-requests: write
