@@ -89,14 +89,79 @@ runs:
           exit "$bun_add_status"
         fi
 
-        # Consumers gate on `bin-path != ''` to avoid resolving
-        # "$REVIEW_CLI_BIN/review-cli" to "/review-cli" and dying on exit 127.
-        # That gate cannot catch a `bun add` that succeeds without linking the
-        # shim (a future major renaming its `bin` key, or a bun bin-linking
-        # change): bin-path would be non-empty and every gate would pass.
-        # Verify the binary is actually there and executable.
-        if [ ! -x "$install_dir/node_modules/.bin/review-cli" ]; then
-          echo "::error::bun add succeeded but $install_dir/node_modules/.bin/review-cli is missing or not executable"
+        bun_bin="$(command -v bun)"
+        if [ -z "$bun_bin" ]; then
+          echo "::error::setup-bun completed but no bun executable is available on PATH"
           exit 1
         fi
-        echo "bin-path=$install_dir/node_modules/.bin" >> "$GITHUB_OUTPUT"
+
+        shim_path="$install_dir/node_modules/.bin/review-cli"
+
+        # Bun occasionally installs the package without linking its `.bin`
+        # shim. Recover from that by reading the package manifest and creating
+        # a tiny wrapper ourselves rather than failing the whole workflow.
+        if [ ! -x "$shim_path" ]; then
+          package_dir="$install_dir/node_modules/@uniswap/review-cli"
+          package_json="$package_dir/package.json"
+          if [ ! -f "$package_json" ]; then
+            echo "::error::bun add succeeded but $package_json is missing"
+            exit 1
+          fi
+
+          bin_rel_path="$(python3 - "$package_json" <<'PY'
+        import json
+        import sys
+
+        with open(sys.argv[1]) as fh:
+            bin_field = json.load(fh).get("bin")
+
+        if isinstance(bin_field, str):
+            print(bin_field)
+        elif isinstance(bin_field, dict):
+            print(bin_field.get("review-cli") or next(iter(bin_field.values()), ""))
+        PY
+          )"
+
+          if [ -z "$bin_rel_path" ]; then
+            echo "::error::bun add succeeded but @uniswap/review-cli does not expose a bin entry"
+            exit 1
+          fi
+
+          if ! bin_target="$(python3 - "$package_dir" "$bin_rel_path" <<'PY'
+        import os
+        import sys
+
+        package_dir = os.path.realpath(sys.argv[1])
+        bin_target = os.path.realpath(os.path.join(package_dir, sys.argv[2]))
+        if os.path.commonpath([package_dir, bin_target]) != package_dir:
+            raise SystemExit(1)
+        print(bin_target)
+        PY
+          )"; then
+            echo "::error::bun add succeeded but @uniswap/review-cli bin target $bin_rel_path resolves outside $package_dir"
+            exit 1
+          fi
+
+          if [ ! -f "$bin_target" ]; then
+            echo "::error::bun add succeeded but @uniswap/review-cli bin target $bin_target is missing"
+            exit 1
+          fi
+
+          mkdir -p "$(dirname "$shim_path")"
+          cat > "$shim_path" <<EOF
+        #!/usr/bin/env bash
+        exec "$bun_bin" "$bin_target" "\$@"
+        EOF
+          chmod +x "$shim_path"
+          echo "::notice::Created $shim_path from @uniswap/review-cli package metadata because bun did not link the review-cli shim."
+        fi
+
+        # Consumers gate on `bin-path != ''` to avoid resolving
+        # "$REVIEW_CLI_BIN/review-cli" to "/review-cli" and dying on exit 127.
+        # Even after the recovery block above, fail closed if the shim still is
+        # not there or not executable.
+        if [ ! -x "$shim_path" ]; then
+          echo "::error::bun add succeeded but $shim_path is missing or not executable"
+          exit 1
+        fi
+        echo "bin-path=$(dirname "$shim_path")" >> "$GITHUB_OUTPUT"
