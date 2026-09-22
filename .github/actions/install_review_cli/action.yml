@@ -75,7 +75,8 @@ runs:
         EOF
         cd "$install_dir"
         bun init -y > /dev/null
-        if bun add "@uniswap/review-cli@${REVIEW_CLI_VERSION}"; then
+        bun_add_log="$install_dir/bun-add.log"
+        if bun add "@uniswap/review-cli@${REVIEW_CLI_VERSION}" 2>&1 | tee "$bun_add_log"; then
           :
         else
           echo "::warning::Unable to access @uniswap/review-cli from GitHub Packages; continuing without AI review."
@@ -90,6 +91,15 @@ runs:
         # package and no binary. Treat that the same as the direct failure
         # path: warn and let callers skip AI review cleanly.
         if [ ! -d "$package_dir" ]; then
+          echo "::warning::Unable to access @uniswap/review-cli from GitHub Packages; continuing without AI review."
+          exit 0
+        fi
+
+        # Bun can also leave a partial package directory behind while still
+        # printing the GitHub Packages auth failure that explains why the
+        # executable shim was never linked. Treat that as unavailable
+        # review-cli, not as a hard workflow failure.
+        if grep -Eq 'error: GET https://npm\.pkg\.github\.com/@uniswap%2freview-cli - 40[13]' "$bun_add_log"; then
           echo "::warning::Unable to access @uniswap/review-cli from GitHub Packages; continuing without AI review."
           exit 0
         fi
