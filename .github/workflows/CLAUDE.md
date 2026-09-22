@@ -20,7 +20,7 @@ Contains GitHub Actions workflow definitions that automate CI/CD, code quality, 
 
 - `claude-code.yml` - Responds to @claude mentions in issues and PRs
 - `claude-code-review.yml` - Automated PR code reviews for **this** repository, via `@uniswap/review-cli`. Does not call `_claude-code-review.yml` (see [PR Code Review for this repository](#pr-code-review-for-this-repository-claude-code-reviewyml))
-- `claude-docs-check.yml` - Validates PR documentation is properly updated (CLAUDE.md, README, versions)
+- `claude-docs-check.yml` - Validates PR documentation is properly updated (CLAUDE.md, README, versions) and skips cleanly when neither Claude auth secret is configured
 - `generate-pr-title-description.yml` - Auto-generates PR titles and descriptions using Claude
 
 ### PR Title Validation (1 workflow)
@@ -88,6 +88,8 @@ You can authenticate with Claude using either method:
 2. **OAuth Token (Pro/Max Users):** Set `CLAUDE_CODE_OAUTH_TOKEN` with a token generated via `claude setup-token`
 
 If both are provided, OAuth token takes precedence. At least one authentication method must be configured.
+
+The top-level `claude-docs-check.yml` caller now performs a cheap preflight check and skips the reusable workflow with a notice when neither secret is configured, instead of surfacing a failing `Validate Authentication` step for a missing-repository-secrets condition.
 
 > **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
 
@@ -613,6 +615,8 @@ This workflow validates that PR documentation is properly updated based on code 
 | **Auto-Fix Mode**           | Optionally auto-fix documentation issues and push changes (triggers re-check)      |
 | **Dual Authentication**     | Supports both API key and OAuth token authentication (OAuth takes precedence)      |
 
+The top-level caller workflow (`claude-docs-check.yml`) now runs a `check-authentication` preflight job and only invokes this reusable workflow when either `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` is present. This prevents missing-auth configuration from surfacing as a failing CI job.
+
 **Suggestion Modes:**
 
 | Mode      | Description                                                                              |
@@ -873,11 +877,15 @@ If both are provided, OAuth token takes precedence. At least one authentication 
 > **Required permissions:** The caller workflow must include `id-token: write` permission (needed by Claude Code Action for ID token creation):
 >
 > ```yaml
-> permissions:
->   contents: read
->   pull-requests: write
->   id-token: write
+> jobs:
+>   generate-metadata:
+>     permissions:
+>       contents: read
+>       pull-requests: write
+>       id-token: write
 > ```
+>
+> If the caller has helper jobs that do not need elevated permissions, grant these on the specific reusable-workflow calling job instead of at the workflow root.
 
 **Usage example (API Key):**
 
