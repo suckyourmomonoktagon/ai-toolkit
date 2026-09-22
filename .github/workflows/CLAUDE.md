@@ -599,6 +599,8 @@ Comment triggers are restricted to `OWNER`, `MEMBER`, and `COLLABORATOR` associa
 
 This workflow validates that PR documentation is properly updated based on code changes. It checks CLAUDE.md files, README files, and plugin version bumps.
 
+`claude-docs-check.yml` (the top-level caller in this repo) now performs a `check-authentication` preflight job and only invokes this reusable workflow when at least one Claude credential is configured. This prevents missing-secret runs from failing in `validate-claude-auth`; it also forwards both `ANTHROPIC_API_KEY` and `CLAUDE_CODE_OAUTH_TOKEN` so either auth mode works.
+
 **Key Features:**
 
 | Feature                     | Description                                                                        |
