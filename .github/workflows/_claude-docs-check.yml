@@ -155,20 +155,20 @@ on:
 
     outputs:
       verdict:
-        description: "PASS or FAIL"
-        value: ${{ jobs.docs-check.outputs.verdict }}
+        description: "PASS, FAIL, or SKIP"
+        value: ${{ jobs.finalize-outputs.outputs.verdict }}
       suggestion_count:
         description: "Number of suggestions made"
-        value: ${{ jobs.docs-check.outputs.suggestion_count }}
+        value: ${{ jobs.finalize-outputs.outputs.suggestion_count }}
       branch_name:
         description: "Name of fixup branch if created"
-        value: ${{ jobs.docs-check.outputs.branch_name }}
+        value: ${{ jobs.finalize-outputs.outputs.branch_name }}
       branch_url:
         description: "URL to fixup branch if created"
-        value: ${{ jobs.docs-check.outputs.branch_url }}
+        value: ${{ jobs.finalize-outputs.outputs.branch_url }}
       commits_pushed:
         description: "Number of commits pushed when auto_commit is enabled"
-        value: ${{ jobs.docs-check.outputs.commits_pushed }}
+        value: ${{ jobs.finalize-outputs.outputs.commits_pushed }}
 
 # Disable Bun's automatic bunfig.toml loading from CWD. When a workflow
 # checks out PR head content (this workflow checks out PR refs to read
@@ -1267,3 +1267,60 @@ jobs:
             echo "✅ Documentation check passed"
             exit 0
           fi
+
+  finalize-outputs:
+    needs: [check-authentication, docs-check]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      verdict: ${{ steps.finalize.outputs.verdict }}
+      suggestion_count: ${{ steps.finalize.outputs.suggestion_count }}
+      branch_name: ${{ steps.finalize.outputs.branch_name }}
+      branch_url: ${{ steps.finalize.outputs.branch_url }}
+      commits_pushed: ${{ steps.finalize.outputs.commits_pushed }}
+    steps:
+      # Security scanning — must be the first step in every non-macOS job.
+      - name: Security Scan
+        uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3 # v0.8.4
+        with:
+          egress-policy: block
+          allowed-domains: |
+            release-assets.githubusercontent.com
+            raw.githubusercontent.com
+            api.anthropic.com
+            claude.ai
+            downloads.claude.ai
+            registry.npmjs.org
+          enable-sudo: false
+
+      - name: Finalize workflow outputs
+        id: finalize
+        env:
+          HAS_AUTH: ${{ needs.check-authentication.outputs.has_auth }}
+          DOCS_VERDICT: ${{ needs.docs-check.outputs.verdict }}
+          DOCS_SUGGESTION_COUNT: ${{ needs.docs-check.outputs.suggestion_count }}
+          DOCS_BRANCH_NAME: ${{ needs.docs-check.outputs.branch_name }}
+          DOCS_BRANCH_URL: ${{ needs.docs-check.outputs.branch_url }}
+          DOCS_COMMITS_PUSHED: ${{ needs.docs-check.outputs.commits_pushed }}
+        run: |
+          if [ "$HAS_AUTH" != "true" ]; then
+            echo "verdict=SKIP" >> "$GITHUB_OUTPUT"
+            echo "suggestion_count=0" >> "$GITHUB_OUTPUT"
+            echo "branch_name=" >> "$GITHUB_OUTPUT"
+            echo "branch_url=" >> "$GITHUB_OUTPUT"
+            echo "commits_pushed=0" >> "$GITHUB_OUTPUT"
+            echo "ℹ️  No Claude authentication configured; emitting deterministic skip outputs."
+            exit 0
+          fi
+
+          if [ -z "$DOCS_VERDICT" ]; then
+            echo "::warning::docs-check produced no verdict output; defaulting workflow outputs to FAIL."
+          fi
+
+          echo "verdict=${DOCS_VERDICT:-FAIL}" >> "$GITHUB_OUTPUT"
+          echo "suggestion_count=${DOCS_SUGGESTION_COUNT:-0}" >> "$GITHUB_OUTPUT"
+          echo "branch_name=${DOCS_BRANCH_NAME}" >> "$GITHUB_OUTPUT"
+          echo "branch_url=${DOCS_BRANCH_URL}" >> "$GITHUB_OUTPUT"
+          echo "commits_pushed=${DOCS_COMMITS_PUSHED:-0}" >> "$GITHUB_OUTPUT"
