@@ -183,22 +183,24 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read # checkout the local composite action
-      packages: read # pull @uniswap/review-cli from GitHub Packages
       issues: write # 👀 reaction on issue_comment
       pull-requests: write # 👀 reaction on pull_request_review_comment
+    env:
+      HAS_REVIEW_CLI_TOKEN: ${{ secrets.REVIEW_CLI_TOKEN != '' }}
     outputs:
-      run: ${{ steps.gate.outputs.run }}
-      pr_number: ${{ steps.gate.outputs.pr_number }}
-      comment_id: ${{ steps.gate.outputs.comment_id }}
-      trigger_source: ${{ steps.gate.outputs.trigger_source }}
-      note: ${{ steps.gate.outputs.note }}
-      commenter: ${{ steps.gate.outputs.commenter }}
-      thread_anchor: ${{ steps.gate.outputs.thread_anchor }}
-      is_fork: ${{ steps.fork_check.outputs.is_fork }}
+      run: ${{ steps.finalize.outputs.run }}
+      pr_number: ${{ steps.finalize.outputs.pr_number }}
+      comment_id: ${{ steps.finalize.outputs.comment_id }}
+      trigger_source: ${{ steps.finalize.outputs.trigger_source }}
+      note: ${{ steps.finalize.outputs.note }}
+      commenter: ${{ steps.finalize.outputs.commenter }}
+      thread_anchor: ${{ steps.finalize.outputs.thread_anchor }}
+      is_fork: ${{ steps.finalize.outputs.is_fork }}
+      review_cli_available: ${{ steps.finalize.outputs.review_cli_available }}
       # Set only when a running-state reply was posted in this job. The
       # review job PATCHes this reply with the terminal verdict. Empty for
       # push-driven runs, which have no comment to reply to.
-      reply_id: ${{ steps.post_reply.outputs.id }}
+      reply_id: ${{ steps.finalize.outputs.reply_id }}
     steps:
       - uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3 # v0.8.4
 
@@ -232,7 +234,9 @@ jobs:
           sparse-checkout-cone-mode: false
 
       - name: Install review-cli
+        if: env.HAS_REVIEW_CLI_TOKEN == 'true'
         id: install-review-cli
+        continue-on-error: true
         uses: ./.github/actions/install_review_cli
         with:
           # Pinned, never `@latest`, so an upstream release cannot change
@@ -241,7 +245,15 @@ jobs:
           # variables → Actions → Variables). 1.10.x is required for the
           # `model.synthesis` key in .claude/review.yml.
           version: ${{ vars.REVIEW_CLI_VERSION || '1.10.6' }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.REVIEW_CLI_TOKEN }}
+
+      - name: Note missing review-cli package token
+        if: env.HAS_REVIEW_CLI_TOKEN != 'true'
+        run: echo "::notice::Skipping AI review because REVIEW_CLI_TOKEN is not configured to read the private @uniswap/review-cli GitHub Package."
+
+      - name: Note review-cli install failure
+        if: env.HAS_REVIEW_CLI_TOKEN == 'true' && steps.install-review-cli.outcome == 'failure'
+        run: echo "::notice::Skipping AI review because REVIEW_CLI_TOKEN could not install @uniswap/review-cli from GitHub Packages. Check the Install review-cli step for the exact failure."
 
       # `loadConfig` treats a missing or invalid .claude/review.yml as
       # "use defaults" and says nothing. Those defaults skip dependabot,
@@ -249,6 +261,7 @@ jobs:
       # would silently stop reviewing dependency PRs (breaking
       # auto-merge) with a green run and no signal. Fail loudly instead.
       - name: Verify review config is present
+        if: steps.install-review-cli.outcome == 'success'
         run: |
           set -euo pipefail
           if [ ! -s .claude/review.yml ]; then
@@ -271,6 +284,7 @@ jobs:
           PY
 
       - name: Decide whether to run
+        if: steps.install-review-cli.outcome == 'success'
         id: gate
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -376,10 +390,51 @@ jobs:
             echo "::warning::posted a running-state reply but could not capture its id; it will never be updated with the terminal verdict"
           fi
 
+      - name: Finalize triage outputs
+        if: always()
+        id: finalize
+        env:
+          GATE_RUN: ${{ steps.gate.outputs.run }}
+          GATE_PR_NUMBER: ${{ steps.gate.outputs.pr_number }}
+          GATE_COMMENT_ID: ${{ steps.gate.outputs.comment_id }}
+          GATE_TRIGGER_SOURCE: ${{ steps.gate.outputs.trigger_source }}
+          GATE_NOTE: ${{ steps.gate.outputs.note }}
+          GATE_COMMENTER: ${{ steps.gate.outputs.commenter }}
+          GATE_THREAD_ANCHOR: ${{ steps.gate.outputs.thread_anchor }}
+          FORK_IS_FORK: ${{ steps.fork_check.outputs.is_fork }}
+          POST_REPLY_ID: ${{ steps.post_reply.outputs.id }}
+          HAS_REVIEW_CLI_TOKEN: ${{ env.HAS_REVIEW_CLI_TOKEN }}
+          INSTALL_OUTCOME: ${{ steps.install-review-cli.outcome }}
+          FALLBACK_PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number || github.event.inputs.pr_number || '' }}
+        run: |
+          set -euo pipefail
+          if [ "$HAS_REVIEW_CLI_TOKEN" != "true" ]; then
+            REVIEW_CLI_AVAILABLE=false
+          elif [ "$INSTALL_OUTCOME" = "success" ]; then
+            REVIEW_CLI_AVAILABLE=true
+          else
+            REVIEW_CLI_AVAILABLE=false
+          fi
+          {
+            echo "run=${GATE_RUN:-false}"
+            echo "pr_number=${GATE_PR_NUMBER:-$FALLBACK_PR_NUMBER}"
+            echo "comment_id=${GATE_COMMENT_ID:-}"
+            echo "trigger_source=${GATE_TRIGGER_SOURCE:-}"
+            echo "note=${GATE_NOTE:-}"
+            echo "commenter=${GATE_COMMENTER:-}"
+            echo "thread_anchor=${GATE_THREAD_ANCHOR:-}"
+            echo "is_fork=${FORK_IS_FORK:-false}"
+            echo "review_cli_available=$REVIEW_CLI_AVAILABLE"
+            echo "reply_id=${POST_REPLY_ID:-}"
+          } >> "$GITHUB_OUTPUT"
+
   review:
     name: AI review
     needs: triage
-    if: needs.triage.outputs.run == 'true' && needs.triage.outputs.is_fork != 'true'
+    if: |
+      needs.triage.outputs.run == 'true' &&
+      needs.triage.outputs.is_fork != 'true' &&
+      needs.triage.outputs.review_cli_available == 'true'
     runs-on: ubuntu-latest
     permissions:
       # `contents: write` (not read) is required for the GraphQL
@@ -388,7 +443,6 @@ jobs:
       # https://github.com/orgs/community/discussions/44650
       # review-cli never pushes to git (persist-credentials: false below).
       contents: write # required by the resolveReviewThread mutation, per above
-      packages: read # pull @uniswap/review-cli
       pull-requests: write # post review comments + resolve threads
       issues: write # comment reactions + sticky comment
     # Hard ceiling. agent_budget_usd in .claude/review.yml is the real cost
@@ -557,7 +611,7 @@ jobs:
         uses: ./.review-tooling/.github/actions/install_review_cli
         with:
           version: ${{ vars.REVIEW_CLI_VERSION || '1.10.6' }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.REVIEW_CLI_TOKEN }}
 
       # Fail loudly rather than silently degrading: without a token the
       # agent-query factory falls back to a mock and "reviews" nothing.
