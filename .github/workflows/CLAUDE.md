@@ -621,7 +621,7 @@ This workflow validates that PR documentation is properly updated based on code 
 | **Commit Suggestions**      | Provides GitHub commit suggestions users can apply with one click                    |
 | **Fixup Branch Creation**   | For larger changes, creates a fixup branch that can be merged into the PR            |
 | **Auto-Commit Mode**        | Optionally auto-commit and push all suggestions directly to the PR branch            |
-| **Pass/Fail Verdict**       | Returns clear pass/fail status for CI integration                                    |
+| **Pass/Fail/Skip Verdict**  | Returns clear pass/fail/skip status for CI integration                               |
 | **Auto-Fix Mode**           | Optionally auto-fix documentation issues and push changes (triggers re-check)        |
 | **Dual Authentication**     | Supports both API key and OAuth token authentication; skips if neither is configured |
 

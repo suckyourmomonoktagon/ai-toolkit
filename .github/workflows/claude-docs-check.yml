@@ -54,6 +54,19 @@ jobs:
     outputs:
       has_auth: ${{ steps.check.outputs.has_auth }}
     steps:
+      - name: Security Scan
+        uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3 # v0.8.4
+        with:
+          egress-policy: block
+          allowed-domains: |
+            release-assets.githubusercontent.com
+            raw.githubusercontent.com
+            api.anthropic.com
+            claude.ai
+            downloads.claude.ai
+            registry.npmjs.org
+          enable-sudo: false
+
       - name: Check authentication availability
         id: check
         env:
@@ -64,7 +77,7 @@ jobs:
             echo "has_auth=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_auth=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Skipping PR documentation validation because no Claude authentication is configured."
+            echo "::notice::Skipping Claude Docs Check because no Claude authentication is configured."
           fi
 
   docs-check:
@@ -72,6 +85,7 @@ jobs:
     # Skip bots and fork PRs (fork code is attacker-controlled)
     # workflow_dispatch fork check is handled inside _claude-docs-check.yml
     if: |
+      needs.check-authentication.outputs.has_auth == 'true' &&
       (
         github.event_name == 'workflow_dispatch' ||
         (
@@ -79,8 +93,7 @@ jobs:
           !contains(github.event.pull_request.user.login, '[bot]') &&
           github.event.pull_request.head.repo.full_name == github.repository
         )
-      ) &&
-      needs.check-authentication.outputs.has_auth == 'true'
+      )
     permissions:
       id-token: write
       contents: write
