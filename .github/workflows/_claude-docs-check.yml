@@ -156,7 +156,7 @@ on:
     outputs:
       verdict:
         description: "PASS, FAIL, or SKIP"
-        value: ${{ jobs.docs-check.outputs.verdict || 'SKIP' }}
+        value: ${{ jobs.docs-check.outputs.verdict || (jobs.check-authentication.outputs.has_auth == 'false' && 'SKIP') || '' }}
       suggestion_count:
         description: "Number of suggestions made"
         value: ${{ jobs.docs-check.outputs.suggestion_count || '0' }}

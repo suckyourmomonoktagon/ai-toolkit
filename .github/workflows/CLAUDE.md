@@ -636,11 +636,11 @@ This workflow validates that PR documentation is properly updated based on code 
 
 **Verdict Logic:**
 
-| Verdict  | When Returned                                                        |
-| -------- | -------------------------------------------------------------------- |
-| **PASS** | No issues found OR only info/minor severity suggestions              |
-| **FAIL** | Any error-level issues (e.g., plugin modified without version bump)  |
-| **SKIP** | Workflow skipped docs validation because Claude auth was unavailable |
+| Verdict  | When Returned                                                       |
+| -------- | ------------------------------------------------------------------- |
+| **PASS** | No issues found OR only info/minor severity suggestions             |
+| **FAIL** | Any error-level issues (e.g., plugin modified without version bump) |
+| **SKIP** | Claude authentication is unavailable, so validation is skipped      |
 
 **Required Secrets:**
 
@@ -657,7 +657,7 @@ You can authenticate with Claude using either method:
 1. **API Key (Traditional):** Set `ANTHROPIC_API_KEY` with your Anthropic API key
 2. **OAuth Token (Pro/Max Users):** Set `CLAUDE_CODE_OAUTH_TOKEN` with a token generated via `claude setup-token`
 
-If both are provided, OAuth token takes precedence. The reusable docs-check workflow runs a preflight auth job, and the top-level `claude-docs-check.yml` caller performs the same check before invoking it; if neither credential is configured, the workflow reports a notice and skips validation successfully.
+If both are provided, OAuth token takes precedence. A preflight job checks for either credential; if neither is configured, the workflow reports a notice, skips validation successfully, and emits deterministic skipped outputs (`verdict=SKIP`, zero suggestion/commit counts, empty branch fields).
 
 > **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
 
@@ -684,7 +684,7 @@ If both are provided, OAuth token takes precedence. The reusable docs-check work
 
 | Output             | Description                                         |
 | ------------------ | --------------------------------------------------- |
-| `verdict`          | PASS, FAIL, or SKIP                                 |
+| `verdict`          | PASS, FAIL, or SKIP when auth is unavailable        |
 | `suggestion_count` | Number of suggestions made                          |
 | `branch_name`      | Name of fixup branch (if created)                   |
 | `branch_url`       | URL to fixup branch (if created)                    |

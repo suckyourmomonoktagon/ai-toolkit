@@ -30,8 +30,7 @@ Workflows that run automated checks on pull requests and commits.
   - Uses the reusable `_claude-docs-check.yml` workflow
   - Forwards either `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN`
   - Uses a preflight auth check job so the caller can skip safely when neither Claude credential is configured
-  - Receives deterministic reusable-workflow outputs (`verdict=SKIP`, zeroed counters, empty branch fields) when auth is unavailable
-  - Keeps Bullfrog as the first step in that preflight job to satisfy the repo's workflow security policy
+  - The reusable workflow emits deterministic skipped outputs (`verdict=SKIP`, zero counts, empty branch fields) when auth is unavailable
 
 - **generate-pr-title-description.yml**:
 
