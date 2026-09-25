@@ -657,7 +657,7 @@ You can authenticate with Claude using either method:
 1. **API Key (Traditional):** Set `ANTHROPIC_API_KEY` with your Anthropic API key
 2. **OAuth Token (Pro/Max Users):** Set `CLAUDE_CODE_OAUTH_TOKEN` with a token generated via `claude setup-token`
 
-If both are provided, OAuth token takes precedence. A preflight job checks for either credential; if neither is configured, the workflow reports a notice and skips validation successfully. The reusable workflow also emits deterministic outputs in that case (`verdict=SKIP`, `suggestion_count=0`, empty branch fields, `commits_pushed=0`) so callers do not see null workflow outputs. That preflight job still starts with Bullfrog, because even skip/summary-style Linux jobs must keep Bullfrog as their first step in this repository.
+If both are provided, OAuth token takes precedence. The reusable docs-check workflow runs a preflight auth job, and the top-level `claude-docs-check.yml` caller performs the same check before invoking it; if neither credential is configured, the workflow reports a notice and skips validation successfully.
 
 > **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
 
