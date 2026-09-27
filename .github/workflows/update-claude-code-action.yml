@@ -12,6 +12,8 @@ jobs:
   update-sha:
     name: Check and update anthropics/claude-code-action
     runs-on: ubuntu-latest
+    env:
+      HAS_WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT != '' }}
     permissions:
       contents: write
       pull-requests: write
@@ -111,22 +113,12 @@ jobs:
             echo "Update available: $CURRENT_SHAS → $LATEST"
             echo "needs_update=true" >> "$GITHUB_OUTPUT"
           fi
-      - name: Check workflow update credentials
-        id: credentials
-        if: steps.check.outputs.needs_update == 'true'
-        env:
-          WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
-        run: |
-          SANITIZED_PAT="${WORKFLOW_PAT//[[:space:]]/}"
-          if [ -n "$SANITIZED_PAT" ]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::WORKFLOW_PAT is not configured (or is blank); skipping the workflow update PR."
-          fi
+      - name: Warn when workflow update token is unavailable
+        if: steps.check.outputs.needs_update == 'true' && env.HAS_WORKFLOW_PAT != 'true'
+        run: echo "::warning::WORKFLOW_PAT is not configured (or is blank); skipping the workflow update PR."
       - name: Build PR description
         id: body
-        if: steps.credentials.outputs.available == 'true'
+        if: steps.check.outputs.needs_update == 'true' && env.HAS_WORKFLOW_PAT == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CURRENT_SHAS: ${{ steps.current.outputs.current_shas }}
@@ -169,7 +161,7 @@ jobs:
             echo "> _This PR was created automatically by the [update-claude-code-action](${GITHUB_SERVER_URL_VAL}/${GITHUB_REPOSITORY_VAL}/actions/workflows/update-claude-code-action.yml) workflow._"
           } > /tmp/pr_body.md
       - name: Update SHA in workflow files
-        if: steps.credentials.outputs.available == 'true'
+        if: steps.check.outputs.needs_update == 'true' && env.HAS_WORKFLOW_PAT == 'true'
         env:
           LATEST: ${{ steps.latest.outputs.latest_sha }}
           LATEST_TAG: ${{ steps.latest.outputs.latest_tag }}
@@ -183,12 +175,13 @@ jobs:
             fi
           done
       - name: Create Pull Request
-        if: steps.credentials.outputs.available == 'true'
+        if: steps.check.outputs.needs_update == 'true' && env.HAS_WORKFLOW_PAT == 'true'
         uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8.1.0
         with:
           # GITHUB_TOKEN cannot update workflow files; the PAT needs the
-          # repository workflows permission.
-          token: ${{ secrets.WORKFLOW_PAT }}
+          # repository workflows permission. Keep a fallback value so the
+          # action input remains populated even when the step is skipped.
+          token: ${{ secrets.WORKFLOW_PAT || github.token }}
           branch: "chore/update-claude-code-action-${{ steps.latest.outputs.latest_tag }}"
           delete-branch: true
           commit-message: |
