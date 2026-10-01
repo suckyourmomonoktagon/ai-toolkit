@@ -231,15 +231,6 @@ jobs:
             .claude
           sparse-checkout-cone-mode: false
 
-      - name: Check review-cli token
-        env:
-          REVIEW_CLI_TOKEN: ${{ secrets.REVIEW_CLI_TOKEN }}
-        run: |
-          if [ -z "$REVIEW_CLI_TOKEN" ]; then
-            echo "::error::REVIEW_CLI_TOKEN is not configured. Add the secret with packages:read access to install @uniswap/review-cli."
-            exit 1
-          fi
-
       - name: Checkout trusted installer action
         if: env.HAS_REVIEW_CLI_TOKEN == 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -253,6 +244,7 @@ jobs:
 
       - name: Install review-cli
         id: install-review-cli
+        if: env.HAS_REVIEW_CLI_TOKEN == 'true'
         # Masked on purpose: GITHUB_TOKEN cannot read a private GitHub
         # Packages registry hosted under a different org/account (e.g. a
         # fork or a personal clone of this repo), so this 403s there by
@@ -270,9 +262,9 @@ jobs:
           version: ${{ vars.REVIEW_CLI_VERSION || '1.10.6' }}
           github-token: ${{ secrets.REVIEW_CLI_TOKEN }}
 
-      - name: Note that review-cli install failed
-        if: steps.install-review-cli.outcome != 'success'
-        run: echo "::notice::review-cli could not be installed (no packages:read access to @uniswap/review-cli from this run). Skipping AI review triage."
+      - name: Note AI review skipped
+        if: env.HAS_REVIEW_CLI_TOKEN != 'true' || steps.install-review-cli.outcome != 'success'
+        run: echo "::notice::AI review triage skipped because REVIEW_CLI_TOKEN is missing or cannot read @uniswap/review-cli."
 
       # `loadConfig` treats a missing or invalid .claude/review.yml as
       # "use defaults" and says nothing. Those defaults skip dependabot,
@@ -313,10 +305,8 @@ jobs:
       - name: Note unavailable review-cli
         if: |
           env.HAS_REVIEW_CLI_TOKEN == 'true' &&
-          (
-            steps.install-review-cli.outcome != 'success' ||
-            steps.install-review-cli.outputs.bin-path == ''
-          )
+          steps.install-review-cli.outcome == 'success' &&
+          steps.install-review-cli.outputs.bin-path == ''
         run: echo "::notice::AI review skipped because review-cli is unavailable. See the install step logs for the cause."
 
       # A declining gate is otherwise a fully green, fully PR-invisible
