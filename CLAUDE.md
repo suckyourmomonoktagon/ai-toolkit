@@ -526,6 +526,10 @@ allowed_users: ${{ fromJSON(vars.ALLOWED_USERS || '[]') }}
 config: ${{ fromJSON(vars.CONFIG || '{}') }}
 ```
 
+### Auth-Gated Claude Workflows
+
+Caller workflows that invoke Claude-powered reusable workflows on this repository should skip at the job level when both `ANTHROPIC_API_KEY` and `CLAUDE_CODE_OAUTH_TOKEN` are empty. This prevents expected no-auth setups from surfacing as failed automation runs while still allowing the reusable workflow to enforce authentication when a caller forgets to gate it.
+
 ### Script Separation Policy
 
 **CRITICAL: Complex scripts in GitHub Actions workflows MUST be separated into standalone files.**
