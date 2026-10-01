@@ -75,33 +75,99 @@ runs:
         EOF
         cd "$install_dir"
         bun init -y > /dev/null
-        bun_add_log="$install_dir/bun-add.log"
-        if bun add "@uniswap/review-cli@${REVIEW_CLI_VERSION}" 2>&1 | tee "$bun_add_log"; then
-          :
-        else
-          echo "::error::Unable to access @uniswap/review-cli from GitHub Packages."
-          exit 1
+        install_log="$install_dir/bun-add.log"
+        set +e
+        bun add "@uniswap/review-cli@${REVIEW_CLI_VERSION}" 2>&1 | tee "$install_log"
+        bun_add_status=${PIPESTATUS[0]}
+        set -e
+        if [ "$bun_add_status" -ne 0 ]; then
+          if grep -Eqi '((npm\.pkg\.github\.com|@uniswap(/|%2f)review-cli).*(401|403)|(401|403).*(npm\.pkg\.github\.com|@uniswap(/|%2f)review-cli))' "$install_log"; then
+            echo "::warning::Skipping AI review: unable to download @uniswap/review-cli from GitHub Packages with the provided token (401/403)."
+            echo "bin-path=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          exit "$bun_add_status"
         fi
 
         package_dir="$install_dir/node_modules/@uniswap/review-cli"
-        bin_path="$install_dir/node_modules/.bin/review-cli"
-
-        # Bun can report the GitHub Packages 403 in stdout/stderr without
-        # tripping the `if ! bun add ...` guard above, leaving no installed
-        # package and no binary. Treat that the same as the direct failure
-        # path and fail the caller.
+        shim_path="$install_dir/node_modules/.bin/review-cli"
         if [ ! -d "$package_dir" ]; then
-          echo "::error::Unable to access @uniswap/review-cli from GitHub Packages."
+          if grep -Eqi '((npm\.pkg\.github\.com|@uniswap(/|%2f)review-cli).*(401|403)|(401|403).*(npm\.pkg\.github\.com|@uniswap(/|%2f)review-cli))' "$install_log"; then
+            echo "::warning::Skipping AI review: unable to download @uniswap/review-cli from GitHub Packages with the provided token (401/403)."
+            echo "bin-path=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "::error::bun add succeeded but $package_dir is missing"
           exit 1
         fi
 
-        # Bun can also leave a partial package directory behind while still
-        # printing the GitHub Packages auth failure that explains why the
-        # executable shim was never linked. Treat that as unavailable
-        # review-cli, not as a hard workflow failure.
-        if grep -Eq 'error: GET https://npm\.pkg\.github\.com/@uniswap%2freview-cli - 40[13]' "$bun_add_log"; then
-          echo "::warning::Unable to access @uniswap/review-cli from GitHub Packages; continuing without AI review."
-          exit 0
+        bun_bin="$(command -v bun)"
+        if [ -z "$bun_bin" ]; then
+          echo "::error::setup-bun completed but no bun executable is available on PATH"
+          exit 1
+        fi
+
+        # Bun occasionally installs the package without linking its `.bin`
+        # shim. Recover from that by reading the package manifest and creating
+        # a tiny wrapper ourselves rather than failing the whole workflow.
+        if [ ! -x "$shim_path" ]; then
+          if grep -Eqi '((npm\.pkg\.github\.com|@uniswap(/|%2f)review-cli).*(401|403)|(401|403).*(npm\.pkg\.github\.com|@uniswap(/|%2f)review-cli))' "$install_log"; then
+            echo "::warning::Skipping AI review: unable to download @uniswap/review-cli from GitHub Packages with the provided token (401/403)."
+            echo "bin-path=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          package_json="$package_dir/package.json"
+          if [ ! -f "$package_json" ]; then
+            echo "::error::bun add succeeded but $package_json is missing"
+            exit 1
+          fi
+
+          bin_rel_path="$(python3 - "$package_json" <<'PY'
+        import json
+        import sys
+
+        with open(sys.argv[1]) as fh:
+            bin_field = json.load(fh).get("bin")
+
+        if isinstance(bin_field, str):
+            print(bin_field)
+        elif isinstance(bin_field, dict):
+            print(bin_field.get("review-cli") or next(iter(bin_field.values()), ""))
+        PY
+          )"
+
+          if [ -z "$bin_rel_path" ]; then
+            echo "::error::bun add succeeded but @uniswap/review-cli does not expose a bin entry"
+            exit 1
+          fi
+
+          if ! bin_target="$(python3 - "$package_dir" "$bin_rel_path" <<'PY'
+        import os
+        import sys
+
+        package_dir = os.path.realpath(sys.argv[1])
+        bin_target = os.path.realpath(os.path.join(package_dir, sys.argv[2]))
+        if os.path.commonpath([package_dir, bin_target]) != package_dir:
+            raise SystemExit(1)
+        print(bin_target)
+        PY
+          )"; then
+            echo "::error::bun add succeeded but @uniswap/review-cli bin target $bin_rel_path resolves outside $package_dir"
+            exit 1
+          fi
+
+          if [ ! -f "$bin_target" ]; then
+            echo "::error::bun add succeeded but @uniswap/review-cli bin target $bin_target is missing"
+            exit 1
+          fi
+
+          mkdir -p "$(dirname "$shim_path")"
+          cat > "$shim_path" <<EOF
+        #!/usr/bin/env bash
+        exec "$bun_bin" "$bin_target" "\$@"
+        EOF
+          chmod +x "$shim_path"
+          echo "::notice::Created $shim_path from @uniswap/review-cli package metadata because bun did not link the review-cli shim."
         fi
 
         # Consumers gate on `bin-path != ''` to avoid resolving
@@ -109,9 +175,10 @@ runs:
         # That gate cannot catch a `bun add` that succeeds without linking the
         # shim (a future major renaming its `bin` key, or a bun bin-linking
         # change): bin-path would be non-empty and every gate would pass.
-        # Verify the binary is actually there and executable.
-        if [ ! -x "$bin_path" ]; then
-          echo "::error::bun add installed $package_dir but $bin_path is missing or not executable"
+        # Even after the recovery block above, fail closed if the shim still is
+        # not there or not executable.
+        if [ ! -x "$shim_path" ]; then
+          echo "::error::bun add installed $package_dir but $shim_path is missing or not executable"
           exit 1
         fi
-        echo "bin-path=$install_dir/node_modules/.bin" >> "$GITHUB_OUTPUT"
+        echo "bin-path=$(dirname "$shim_path")" >> "$GITHUB_OUTPUT"

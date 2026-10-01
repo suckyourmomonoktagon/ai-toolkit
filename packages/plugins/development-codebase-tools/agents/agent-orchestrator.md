@@ -267,11 +267,11 @@ restates the one above it. Target under 150 lines total, and keep prose to bulle
 
 ### Selected Agents
 
-| Task     | Agent        | Match Quality      | Execution Order      |
-| -------- | ------------ | ------------------ | -------------------- |
-| [Task 1] | [Agent Name] | Strong             | Parallel Group 1     |
-| [Task 2] | [Agent Name] | Strong             | Parallel Group 1     |
-| [Task 3] | [Agent Name] | Partial            | Sequential After 1,2 |
+| Task     | Agent        | Match Quality | Execution Order      |
+| -------- | ------------ | ------------- | -------------------- |
+| [Task 1] | [Agent Name] | Strong        | Parallel Group 1     |
+| [Task 2] | [Agent Name] | Strong        | Parallel Group 1     |
+| [Task 3] | [Agent Name] | Partial       | Sequential After 1,2 |
 
 ### Selection Reasoning
 
