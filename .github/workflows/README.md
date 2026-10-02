@@ -105,6 +105,7 @@ Workflows designed to be called by other workflows using `workflow_call`. These 
   - Comment trigger (`@request-claude-review`) restricted to OWNER/MEMBER/COLLABORATOR, with 👀 → ✅/❌ reaction lifecycle
   - Automated-PR filtering via the shared `check-automated-pr` action; dependency PRs are reviewed on purpose so auto-merge can gate on the result
   - Fork PRs are never reviewed (the review job checks out PR head code)
+  - Triage skips with a notice when the private GitHub Packages token is not configured
   - Configured by `.claude/review.yml` and `.claude/agents/*-reviewer.md`
   - Fixed security settings (Bullfrog scanning, per-job least-privilege permissions)
 
