@@ -204,11 +204,14 @@ The [Claude GitHub App](https://github.com/apps/claude) must be installed on you
 | Secret                             | Used By                                     | Purpose                                             |
 | ---------------------------------- | ------------------------------------------- | --------------------------------------------------- |
 | `WORKFLOW_PAT`                     | publish-packages.yml, update-production.yml | Push commits/tags, create PRs (internal CI/CD only) |
-| `ANTHROPIC_API_KEY`                | generate-changelog.yml                      | AI-powered changelog generation                     |
+| `ANTHROPIC_API_KEY`                | claude-docs-check.yml, generate-changelog.yml, generate-pr-title-description.yml | Claude authentication for AI-powered workflows |
+| `CLAUDE_CODE_OAUTH_TOKEN`          | claude-docs-check.yml, generate-pr-title-description.yml | Alternative Claude authentication |
 | `SLACK_WEBHOOK_URL`                | notify-release.yml, publish-packages.yml    | Send Slack release and error notifications          |
 | `NOTION_API_KEY`                   | notify-release.yml                          | Publish release notes to Notion (optional)          |
 | `RELEASE_NOTES_NOTION_DATABASE_ID` | notify-release.yml                          | Notion database ID for release notes (optional)     |
 | `NODE_AUTH_TOKEN`                  | publish-packages.yml                        | Publish to NPM registry                             |
+
+Claude docs checks and PR metadata generation skip cleanly when neither Claude credential is configured.
 
 > **Note:** External consumers of the reusable workflows (e.g., `_claude-code-review.yml`, `_generate-pr-metadata.yml`) do **not** need `WORKFLOW_PAT`. The ai-toolkit repository is public, so fetching default prompts requires no authentication.
 

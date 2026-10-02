@@ -641,7 +641,7 @@ You can authenticate with Claude using either method:
 
 If both are provided, OAuth token takes precedence. At least one authentication method must be configured.
 
-The repository's top-level `claude-docs-check.yml` caller skips the reusable workflow when neither authentication secret is configured.
+The top-level `claude-docs-check.yml` and `generate-pr-title-description.yml` callers use authentication preflight jobs to skip their reusable workflows when neither authentication secret is configured. Callers must check secret presence through job-level environment variables because job-level `if:` cannot reference `secrets.*`.
 
 > **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
 
