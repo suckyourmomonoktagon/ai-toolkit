@@ -26,7 +26,7 @@ Contains GitHub Actions workflow definitions that automate CI/CD, code quality, 
 
 ### PR Title Validation (1 workflow)
 
-- `ci-check-pr-title.yml` - Validates PR titles follow conventional commit format and skips automated PRs plus `copilot/*` branches via `check-automated-pr`
+- `ci-check-pr-title.yml` - Validates PR titles follow conventional commit format, skipping automated PRs and `copilot/*` branches
 
 ### Dependency Management (3 workflows)
 
@@ -95,6 +95,8 @@ At least one authentication method must be configured.
 The top-level `claude-docs-check.yml` caller now performs a cheap preflight check and skips the reusable workflow with a notice when neither secret is configured, instead of surfacing a failing `Validate Authentication` step for a missing-repository-secrets condition.
 
 The top-level `claude-docs-check.yml` workflow now skips cleanly with a notice when neither secret is configured, instead of failing before the reusable worker starts. Direct callers of `_claude-docs-check.yml` must still pass at least one credential.
+
+The top-level `generate-pr-title-description.yml` caller skips metadata generation when neither authentication secret is configured.
 
 > **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
 
@@ -656,6 +658,8 @@ You can authenticate with Claude using either method:
 2. **OAuth Token (Pro/Max Users):** Set `CLAUDE_CODE_OAUTH_TOKEN` with a token generated via `claude setup-token`
 
 If both are provided, OAuth token takes precedence. The top-level caller runs a `check-authentication` preflight, forwards both secrets to `_claude-docs-check.yml`, and skips validation successfully when neither credential is configured.
+
+The repository's top-level `claude-docs-check.yml` caller skips the reusable workflow when neither authentication secret is configured.
 
 > **Important:** The [Claude GitHub App](https://github.com/apps/claude) must be installed on your repository for these workflows to function. This is required by Anthropic's official Claude Code GitHub Action.
 

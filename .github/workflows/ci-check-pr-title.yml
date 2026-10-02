@@ -65,4 +65,4 @@ jobs:
         env:
           SKIP_REASON: ${{ steps.check-automated.outputs.is_automated == 'true' && steps.check-automated.outputs.skip_reason || 'GitHub Copilot coding agent branch (copilot/* prefix); title is machine-generated from the task description' }}
         run: |
-          echo "Automated PR detected: $SKIP_REASON. This check is automatically passed."
+          echo "PR title validation skipped: ${SKIP_REASON:-Copilot-generated branch}."

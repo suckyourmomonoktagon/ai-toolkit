@@ -225,6 +225,8 @@ The [Claude GitHub App](https://github.com/apps/claude) must be installed on you
 >
 > **Note:** `_generate-pr-metadata.yml` requires either `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` to actually generate PR metadata, but it now skips cleanly with a notice when neither credential is configured.
 
+> **Note:** The `generate-pr-title-description.yml` caller skips metadata generation when neither `ANTHROPIC_API_KEY` nor `CLAUDE_CODE_OAUTH_TOKEN` is configured.
+
 ## Usage Examples
 
 ### Calling a Reusable Workflow
