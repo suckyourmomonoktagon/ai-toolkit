@@ -78,6 +78,9 @@ runs:
         bun_add_log="$install_dir/bun-add.log"
         if bun add "@uniswap/review-cli@${REVIEW_CLI_VERSION}" 2>&1 | tee "$bun_add_log"; then
           :
+        elif grep -Eq 'error: GET https://npm\.pkg\.github\.com/@uniswap%2freview-cli - 40[13]' "$bun_add_log"; then
+          echo "::warning::Unable to access @uniswap/review-cli from GitHub Packages; continuing without AI review."
+          exit 0
         else
           echo "::error::Unable to access @uniswap/review-cli from GitHub Packages."
           exit 1
@@ -86,22 +89,16 @@ runs:
         package_dir="$install_dir/node_modules/@uniswap/review-cli"
         bin_path="$install_dir/node_modules/.bin/review-cli"
 
-        # Bun can report the GitHub Packages 403 in stdout/stderr without
-        # tripping the `if ! bun add ...` guard above, leaving no installed
-        # package and no binary. Treat that the same as the direct failure
-        # path and fail the caller.
-        if [ ! -d "$package_dir" ]; then
-          echo "::error::Unable to access @uniswap/review-cli from GitHub Packages."
-          exit 1
-        fi
-
-        # Bun can also leave a partial package directory behind while still
-        # printing the GitHub Packages auth failure that explains why the
-        # executable shim was never linked. Treat that as unavailable
-        # review-cli, not as a hard workflow failure.
+        # Bun can print an auth failure while returning success or leaving a
+        # partial package directory behind. Treat either as unavailable.
         if grep -Eq 'error: GET https://npm\.pkg\.github\.com/@uniswap%2freview-cli - 40[13]' "$bun_add_log"; then
           echo "::warning::Unable to access @uniswap/review-cli from GitHub Packages; continuing without AI review."
           exit 0
+        fi
+
+        if [ ! -d "$package_dir" ]; then
+          echo "::error::Unable to access @uniswap/review-cli from GitHub Packages."
+          exit 1
         fi
 
         # Consumers gate on `bin-path != ''` to avoid resolving
