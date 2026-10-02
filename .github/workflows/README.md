@@ -205,6 +205,7 @@ The [Claude GitHub App](https://github.com/apps/claude) must be installed on you
 | ---------------------------------- | ------------------------------------------- | --------------------------------------------------- |
 | `WORKFLOW_PAT`                     | publish-packages.yml, update-production.yml | Push commits/tags, create PRs (internal CI/CD only) |
 | `ANTHROPIC_API_KEY`                | generate-changelog.yml                      | AI-powered changelog generation                     |
+| `REVIEW_CLI_TOKEN`                 | claude-code-review.yml                      | Read access to the private `@uniswap/review-cli` package |
 | `SLACK_WEBHOOK_URL`                | notify-release.yml, publish-packages.yml    | Send Slack release and error notifications          |
 | `NOTION_API_KEY`                   | notify-release.yml                          | Publish release notes to Notion (optional)          |
 | `RELEASE_NOTES_NOTION_DATABASE_ID` | notify-release.yml                          | Notion database ID for release notes (optional)     |
