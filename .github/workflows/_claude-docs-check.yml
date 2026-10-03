@@ -333,6 +333,7 @@ jobs:
         with:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          allow-missing-auth: 'true'
 
       # Get PR info
       - name: Get PR Info

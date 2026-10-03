@@ -259,13 +259,6 @@ jobs:
       - name: Install review-cli
         id: install-review-cli
         if: env.HAS_REVIEW_CLI_TOKEN == 'true'
-        # Masked on purpose: GITHUB_TOKEN cannot read a private GitHub
-        # Packages registry hosted under a different org/account (e.g. a
-        # fork or a personal clone of this repo), so this 403s there by
-        # design. Downstream steps gate on `outcome` and skip cleanly
-        # instead of failing the whole triage job over missing access
-        # this run was never going to have.
-        continue-on-error: true
         uses: ./.review-tooling/.github/actions/install_review_cli
         with:
           # Pinned, never `@latest`, so an upstream release cannot change
@@ -277,8 +270,8 @@ jobs:
           github-token: ${{ secrets.REVIEW_CLI_TOKEN }}
 
       - name: Note that review-cli install failed
-        if: env.HAS_REVIEW_CLI_TOKEN == 'true' && steps.install-review-cli.outcome != 'success'
-        run: echo "::notice::review-cli could not be installed (no packages:read access to @uniswap/review-cli from this run). Skipping AI review triage."
+        if: failure() && env.HAS_REVIEW_CLI_TOKEN == 'true' && steps.install-review-cli.outcome != 'success'
+        run: echo "::notice::review-cli installation failed. The required review job will fail; see the install step logs."
 
       # `loadConfig` treats a missing or invalid .claude/review.yml as
       # "use defaults" and says nothing. Those defaults skip dependabot,

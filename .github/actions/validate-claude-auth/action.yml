@@ -1,5 +1,5 @@
 # Composite action to validate Claude authentication
-# Ensures at least one of ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN is provided
+# Requires a Claude authentication method unless allow-missing-auth is enabled
 #
 # Usage:
 #   - name: Validate Authentication
@@ -20,22 +20,38 @@ inputs:
     description: 'The CLAUDE_CODE_OAUTH_TOKEN secret value (pass: secrets.CLAUDE_CODE_OAUTH_TOKEN)'
     required: false
     default: ''
+  allow-missing-auth:
+    description: 'Allow validation to continue when no Claude authentication is provided'
+    required: false
+    default: 'false'
+
+outputs:
+  authenticated:
+    description: 'Whether a Claude authentication method was provided'
+    value: ${{ steps.validate-auth.outputs.authenticated }}
 
 runs:
   using: 'composite'
   steps:
     - name: Validate authentication
+      id: validate-auth
       shell: bash
       env:
         API_KEY: ${{ inputs.anthropic-api-key }}
         OAUTH_TOKEN: ${{ inputs.claude-oauth-token }}
+        ALLOW_MISSING_AUTH: ${{ inputs.allow-missing-auth }}
       run: |
         echo "Validating authentication configuration..."
 
         if [ -n "$OAUTH_TOKEN" ]; then
           echo "Using Claude Code OAuth token for authentication"
+          echo "authenticated=true" >> "$GITHUB_OUTPUT"
         elif [ -n "$API_KEY" ]; then
           echo "Using Anthropic API key for authentication"
+          echo "authenticated=true" >> "$GITHUB_OUTPUT"
+        elif [ "$ALLOW_MISSING_AUTH" = "true" ]; then
+          echo "::warning::No Claude authentication provided; skipping the documentation check."
+          echo "authenticated=false" >> "$GITHUB_OUTPUT"
         else
           echo "::error::No authentication provided. At least one of ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN must be set."
           echo ""
