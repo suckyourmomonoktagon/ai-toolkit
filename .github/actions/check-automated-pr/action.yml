@@ -18,7 +18,7 @@ outputs:
     description: 'Human-readable reason for skipping (empty if not automated)'
     value: ${{ steps.check.outputs.skip_reason }}
   category:
-    description: 'Category of automation (release, sync, deps, merge-queue, action-update, or empty)'
+    description: 'Category of automation (release, sync, deps, merge-queue, action-update, copilot, or empty)'
     value: ${{ steps.check.outputs.category }}
 
 runs:
@@ -39,8 +39,14 @@ runs:
         # Branch prefix checks (CI-created branches)
         # ===========================================
 
+        # Copilot coding agent branches
+        if [[ "$BRANCH_NAME" == copilot/* ]]; then
+          IS_AUTOMATED="true"
+          SKIP_REASON="Copilot coding agent branch (copilot/* prefix)"
+          CATEGORY="copilot"
+
         # Graphite merge queue branches
-        if [[ "$BRANCH_NAME" == gtmq* ]]; then
+        elif [[ "$BRANCH_NAME" == gtmq* ]]; then
           IS_AUTOMATED="true"
           SKIP_REASON="Graphite merge queue branch (gtmq* prefix)"
           CATEGORY="merge-queue"
@@ -50,6 +56,12 @@ runs:
           IS_AUTOMATED="true"
           SKIP_REASON="GitHub merge queue branch (gh-readonly-queue/* prefix)"
           CATEGORY="merge-queue"
+
+        # Copilot coding agent branches
+        elif [[ "$BRANCH_NAME" == copilot/* ]]; then
+          IS_AUTOMATED="true"
+          SKIP_REASON="Copilot coding agent branch (copilot/* prefix)"
+          CATEGORY="copilot"
 
         # Release automation branches (e.g., release/next-to-main-20260113-184501)
         elif [[ "$BRANCH_NAME" == release/* ]]; then
