@@ -87,6 +87,29 @@ concurrency:
 permissions: {}
 
 jobs:
+  # GITHUB_TOKEN can read packages belonging to this repository, but cannot
+  # read the private @uniswap/review-cli package. Skip reviews cleanly when
+  # the separately configured Packages token is unavailable.
+  review-cli-auth:
+    name: Check review-cli access
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      available: ${{ steps.check.outputs.available }}
+    steps:
+      - uses: bullfrogsec/bullfrog@1831f79cce8ad602eef14d2163873f27081ebfb3 # v0.8.4
+
+      - id: check
+        env:
+          REVIEW_CLI_TOKEN: ${{ secrets.REVIEW_CLI_TOKEN }}
+        run: |
+          if [ -n "$REVIEW_CLI_TOKEN" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::AI review skipped because REVIEW_CLI_TOKEN is not configured."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
   # Classify automated PRs. review-cli's own skip policy covers branch
   # prefixes and authors (see .claude/review.yml), but it has no notion of
   # PR *titles* — and this repo's release and sync automation is
@@ -122,27 +145,6 @@ jobs:
           branch_name: ${{ github.head_ref }}
           pr_title: ${{ github.event.pull_request.title }}
 
-  # @uniswap/review-cli is private to the Uniswap GitHub Packages registry.
-  # GITHUB_TOKEN can read packages only from this repository, not that
-  # registry, so skip cleanly unless the cross-repository credential exists.
-  review-cli-credentials:
-    name: Check review-cli access
-    runs-on: ubuntu-latest
-    permissions: {}
-    outputs:
-      available: ${{ steps.check.outputs.available }}
-    steps:
-      - id: check
-        env:
-          REVIEW_CLI_TOKEN: ${{ secrets.REVIEW_CLI_TOKEN }}
-        run: |
-          if [ -n "$REVIEW_CLI_TOKEN" ]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::AI review skipped because REVIEW_CLI_TOKEN is not configured."
-          fi
-
   # Cheap gate: no PR checkout, no LLM call. `review-cli triage` reads
   # GITHUB_EVENT_NAME + GITHUB_EVENT_PATH itself and writes a structured
   # decision to GITHUB_OUTPUT, so no PR-author-controlled field is ever
@@ -151,7 +153,7 @@ jobs:
   # parse, and workflow_dispatch pr_number extraction.
   triage:
     name: Triage
-    needs: [check-automated, review-cli-credentials]
+    needs: [check-automated, review-cli-auth]
     # Coarse event gate: a cheap early exit so unrelated comments and
     # untrusted commenters never pay for runner startup. `review-cli
     # triage` below is the authoritative policy check (it enforces the
@@ -172,7 +174,8 @@ jobs:
     # autonomous-task workflow opens DRAFT PRs and those must still be
     # reviewed on open, not only once a human marks them ready.
     if: |
-      always() && needs.review-cli-credentials.outputs.available == 'true' && (
+      always() &&
+      needs.review-cli-auth.outputs.available == 'true' && (
         (
           github.event_name == 'pull_request' &&
           needs.check-automated.result == 'success' &&
@@ -236,10 +239,10 @@ jobs:
       # branch and author skips are simply not applied. Reading the real
       # config is what makes the policy in .claude/review.yml effective.
       #
-      # Deliberately NOT pinned to the default branch: this checkout supplies
-      # the PR-controlled skip policy. The credential-bearing installer is
-      # not sourced from this checkout.
-      - name: Checkout repository (review config)
+      # The checkout intentionally follows the event ref so a PR can influence
+      # the skip policy it reads. The installer is loaded separately from the
+      # trusted default branch below because it receives REVIEW_CLI_TOKEN.
+      - name: Checkout repository (event-ref config)
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
