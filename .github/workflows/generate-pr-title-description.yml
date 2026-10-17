@@ -26,10 +26,7 @@ concurrency:
   group: pr-metadata-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-  pull-requests: write
-  id-token: write
+permissions: {}
 
 jobs:
   check-auth:
@@ -58,6 +55,10 @@ jobs:
 
   generate-metadata:
     needs: check-auth
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
     # Skip conditions:
     # - Claude authentication is not configured
     # - Merge queue PRs (handled separately)
